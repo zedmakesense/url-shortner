@@ -5,13 +5,13 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-type RepositoryPg struct {
+type RepositoryStruct struct {
 	db  *pgxpool.Pool
 	rdb *redis.Client
 }
 
-func NewRepository(db *pgxpool.Pool, rdb *redis.Client) *RepositoryPg {
-	return &RepositoryPg{
+func NewRepository(db *pgxpool.Pool, rdb *redis.Client) *RepositoryStruct {
+	return &RepositoryStruct{
 		db:  db,
 		rdb: rdb,
 	}

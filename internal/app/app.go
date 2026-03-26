@@ -77,9 +77,9 @@ func New() (*App, error) {
 
 	log.Info("Redis connection established")
 
-	repo := repository.NewRepository(dbpool, rdb)
-	service := service.NewService(repo)
-	router := NewRouter(service, log)
+	repositoryVariable := repository.NewRepository(dbpool, rdb)
+	serviceVariable := service.NewService(repositoryVariable)
+	router := NewRouter(serviceVariable, log)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.App.Port,

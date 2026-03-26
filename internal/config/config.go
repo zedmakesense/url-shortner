@@ -115,6 +115,12 @@ func (c *Config) LoadRedisConfig() error {
 	return nil
 }
 
+func NewLogConfig() *Config {
+	cfg := &Config{}
+	cfg.LoadLogConfig()
+	return cfg
+}
+
 func (c *Config) LoadDBConfig() error {
 	var err error
 	c.DB.Host = getEnv("DB_HOST", "localhost")

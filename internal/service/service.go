@@ -1,15 +1,15 @@
 package service
 
-type Repository interface {
+type RepositoryInterface interface {
 }
 
-type Service interface {
+type ServiceInterface interface {
 }
 
-type service struct {
-	repo Repository
+type serviceStruct struct {
+	repo RepositoryInterface
 }
 
-func NewService(repo Repository) *service {
-	return &service{repo: repo}
+func NewService(repo RepositoryInterface) *serviceStruct {
+	return &serviceStruct{repo: repo}
 }
