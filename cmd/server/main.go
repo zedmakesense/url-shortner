@@ -8,7 +8,8 @@ import (
 	"time"
 
 	"github.com/zedmakesense/url-shortner/internal/app"
-	"github.com/zedmakesense/url-shortner/pkg/logger"
+	"github.com/zedmakesense/url-shortner/internal/config"
+	"github.com/zedmakesense/url-shortner/internal/logger"
 )
 
 const (
@@ -16,7 +17,9 @@ const (
 )
 
 func main() {
-	log := logger.NewFromEnv()
+	cfg := config.NewLogConfig()
+	log := logger.NewLogger(cfg.Log)
+
 	application, err := app.New()
 	if err != nil {
 		log.Error("failed to create application", "error", err)
