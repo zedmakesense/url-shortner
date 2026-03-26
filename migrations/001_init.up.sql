@@ -1,0 +1,45 @@
+CREATE TABLE IF NOT EXISTS users (
+  user_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  session_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+  access_token_hash BYTEA NOT NULL UNIQUE,
+  refresh_token_hash BYTEA NOT NULL UNIQUE,
+  access_expires_at TIMESTAMPTZ NOT NULL,
+  refresh_expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS urls (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  short_code TEXT NOT NULL UNIQUE,
+  long_url TEXT NOT NULL,
+  user_id BIGINT NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  click_count BIGINT NOT NULL DEFAULT 0,
+  UNIQUE (user_id, short_code)
+);
+
+CREATE TABLE IF NOT EXISTS clicks (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  url_id BIGINT NOT NULL REFERENCES urls (id) ON DELETE CASCADE,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls (short_code);
+
+CREATE INDEX IF NOT EXISTS idx_urls_user_id ON urls (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_clicks_url_id ON clicks (url_id);
+
+CREATE INDEX IF NOT EXISTS idx_clicks_created_at ON clicks (created_at);
