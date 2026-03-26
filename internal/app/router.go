@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/rs/cors"
 	"github.com/zedmakesense/url-shortner/internal/service"
 )
 
@@ -21,6 +22,7 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger) http.Handler 
 	// mux.HandleFunc("POST /api/v1/auth/register", h.register)
 	// mux.HandleFunc("POST /api/v1/auth/login", h.login)
 	// mux.HandleFunc("POST /api/v1/auth/logout", h.logout)
+	// mux.HandleFunc("POST /api/v1/auth/refresh", h.refresh)
 	// mux.HandleFunc("POST /api/v1/auth/forgot-password", h.forgotPassword)
 	// mux.HandleFunc("GET /api/v1/auth/me", h.me)
 
@@ -36,7 +38,16 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger) http.Handler 
 			return
 		}
 	})
-	return loggingMiddleware(log, mux)
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:8080"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	})
+
+	return loggingMiddleware(log, c.mux)
 }
 
 func loggingMiddleware(log *slog.Logger, next http.Handler) http.Handler {
