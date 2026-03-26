@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/zedmakesense/url-shortner/internal/handler"
 	"github.com/zedmakesense/url-shortner/internal/service"
 )
 
@@ -17,9 +16,18 @@ type responseWriter struct {
 func NewRouter(service service.ServiceInterface, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
-	h := handler.NewHandler(service)
+	// h := handler.NewHandler(service)
 
-	mux.HandleFunc("GET /", h.ShowIndex)
+	// mux.HandleFunc("POST /api/v1/auth/register", h.register)
+	// mux.HandleFunc("POST /api/v1/auth/login", h.login)
+	// mux.HandleFunc("POST /api/v1/auth/logout", h.logout)
+	// mux.HandleFunc("POST /api/v1/auth/forgot-password", h.forgotPassword)
+	// mux.HandleFunc("GET /api/v1/auth/me", h.me)
+
+	// mux.HandleFunc("GET /{slug}", h.redirect)
+	// mux.HandleFunc("POST /api/v1/urls", h.urls)
+	// mux.HandleFunc("GET /api/v1/urls/{slug}", h.getURL)
+	// mux.HandleFunc("DELETE /api/v1/urls/{slug}", h.deleteURL)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
