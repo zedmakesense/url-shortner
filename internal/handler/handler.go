@@ -21,5 +21,5 @@ func NewHandler(service service.ServiceInterface) *Handler {
 	}
 }
 
-func (h *Handler) ShowIndex(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ShowHome(w http.ResponseWriter, r *http.Request) {
 }
