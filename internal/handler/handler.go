@@ -1,25 +1,23 @@
 package handler
 
 import (
+	"log/slog"
 	"net/http"
-	"path/filepath"
-	"text/template"
 
 	"github.com/zedmakesense/url-shortner/internal/service"
 )
 
 type Handler struct {
-	service   service.ServiceInterface
-	templates *template.Template
+	service service.ServiceInterface
+	log     *slog.Logger
 }
 
-func NewHandler(service service.ServiceInterface) *Handler {
-	templates := template.Must(template.ParseFiles(filepath.Join("templates", "*html")))
+func NewHandler(service service.ServiceInterface, log *slog.Logger) *Handler {
 	return &Handler{
-		service:   service,
-		templates: templates,
+		service: service,
+		log:     log,
 	}
 }
 
-func (h *Handler) ShowHome(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 }
