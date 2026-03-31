@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -45,4 +46,17 @@ func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name st
 	}
 	repoLogger.InfoContext(ctx, "user inserted", "userID", userID)
 	return userID, nil
+}
+
+func (r *RepositoryStruct) InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+	query := `
+		INSERT INTO sessions (user_id, access_token_hash, refresh_token_hash, access_expires_at, refresh_expires_at
+		VALUES ($1, $2, $3, $4, $5)
+	`
+	_, err := r.db.Exec(ctx, query, userID, accessTokenHash, refreshTokenHash, accessExpiresAt, refreshExpiresAt)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

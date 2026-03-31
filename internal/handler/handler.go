@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/zedmakesense/url-shortner/internal/domain"
 	"github.com/zedmakesense/url-shortner/internal/service"
@@ -46,11 +47,22 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
+			handlerLogger.ErrorContext(r.Context(), "email already exist", "error", err)
 			if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "email already exist"}); encErr != nil {
 				return
 			}
 			return
 		}
+		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "user creation failed", "error", err)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	accessToken, err := h.service.GenerateToken()
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
@@ -58,4 +70,49 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshToken, err := h.service.GenerateToken()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	now := time.Now().UTC()
+	accessExpiresAt := now.Add(15 * time.Minute)
+	refreshExpiresAt := now.Add(7 * 24 * time.Hour)
+	if err := h.service.StoreTokens(r.Context(), userID, accessToken, refreshToken, accessExpiresAt, refreshExpiresAt); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	secure := false
+	accessCookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   15 * 60,
+	}
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60,
+	}
+
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Registration successful"})
 }
