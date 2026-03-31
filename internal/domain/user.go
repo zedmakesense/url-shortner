@@ -6,3 +6,13 @@ type User struct {
 	Username       string
 	HashedPassword string
 }
+
+type UserRequest struct {
+	Name     string `json:"name"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type ErrorResponse struct {
+	Error string `json:"error"`
+}

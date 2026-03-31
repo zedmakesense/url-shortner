@@ -32,9 +32,9 @@ func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name st
 		VALUES ($1, $2, $3)
 		RETURNING user_id
 	`
-	var user_ID int
+	var userID int
 
-	err := r.db.QueryRow(ctx, query, email, name, hashedPassword).Scan(&user_ID)
+	err := r.db.QueryRow(ctx, query, email, name, hashedPassword).Scan(&userID)
 	if err != nil {
 		repoLogger.ErrorContext(ctx, "user insertion failed", "email", email, "err", err)
 		var pgErr *pgconn.PgError
@@ -43,6 +43,6 @@ func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name st
 		}
 		return 0, err
 	}
-	repoLogger.InfoContext(ctx, "user inserted", "user_ID", user_ID)
-	return user_ID, nil
+	repoLogger.InfoContext(ctx, "user inserted", "userID", userID)
+	return userID, nil
 }
