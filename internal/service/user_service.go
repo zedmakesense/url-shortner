@@ -33,8 +33,11 @@ func (s *serviceStruct) UserCreate(ctx context.Context, email string, name strin
 		return 0, err
 	}
 
-	user_ID, err := s.repo.InsertUser(ctx, email, name, hashedPassword)
+	userID, err := s.repo.InsertUser(ctx, email, name, hashedPassword)
+	if err != nil {
+		return 0, err
+	}
 
-	svcLogger.InfoContext(ctx, "huh? why am I here?")
-	return user_ID, nil
+	svcLogger.InfoContext(ctx, "user created", "user_id", userID, "email", email)
+	return userID, nil
 }
