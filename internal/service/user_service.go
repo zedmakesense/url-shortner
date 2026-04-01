@@ -15,6 +15,8 @@ type RepositoryInterface interface {
 	InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error)
 	InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+	RevokeToken(ctx context.Context, sessionId int64) error
+	GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error)
 }
 
 type ServiceInterface interface {
@@ -22,6 +24,7 @@ type ServiceInterface interface {
 	StoreTokens(ctx context.Context, userID int, accessToken string, refreshToken string, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
 	GenerateToken() (string, error)
 	Login(ctx context.Context, email string, password string) (int, error)
+	RevokeToken(ctx context.Context, refreshToken string) error
 }
 
 type serviceStruct struct {
@@ -76,4 +79,12 @@ func (s *serviceStruct) Login(ctx context.Context, email string, password string
 		return 0, err
 	}
 	return user.ID, comparePassword(user.HashedPassword, password)
+}
+
+func (s *serviceStruct) RevokeToken(ctx context.Context, refreshToken string) error {
+	token, err := s.repo.GetByRefreshToken(ctx, hashToken(refreshToken))
+	if err != nil {
+		return err
+	}
+	return s.repo.RevokeToken(ctx, token.SessionId)
 }

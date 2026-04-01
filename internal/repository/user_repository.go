@@ -13,21 +13,21 @@ import (
 	"github.com/zedmakesense/url-shortner/internal/domain"
 )
 
-type RepositoryStruct struct {
+type repositoryStruct struct {
 	db  *pgxpool.Pool
 	rdb *redis.Client
 	log *slog.Logger
 }
 
-func NewRepository(db *pgxpool.Pool, rdb *redis.Client, log *slog.Logger) *RepositoryStruct {
-	return &RepositoryStruct{
+func NewRepository(db *pgxpool.Pool, rdb *redis.Client, log *slog.Logger) *repositoryStruct {
+	return &repositoryStruct{
 		db:  db,
 		rdb: rdb,
 		log: log,
 	}
 }
 
-func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error) {
+func (r *repositoryStruct) InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error) {
 	repoLogger := r.log.With("component", "user_repository")
 	const query = `
 		INSERT INTO users (email, name, hashedPassword)
@@ -50,7 +50,7 @@ func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name st
 	return userID, nil
 }
 
-func (r *RepositoryStruct) InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+func (r *repositoryStruct) InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
 	repoLogger := r.log.With("component", "user_repository")
 	query := `
 		INSERT INTO sessions (user_id, access_token_hash, refresh_token_hash, access_expires_at, refresh_expires_at
@@ -66,7 +66,7 @@ func (r *RepositoryStruct) InsertSession(ctx context.Context, userID int, access
 	return nil
 }
 
-func (r *RepositoryStruct) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
+func (r *repositoryStruct) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	query := `SELECT * FROM users WHERE email=$1`
 	var user domain.User
 	err := r.db.QueryRow(ctx, query, email).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
@@ -77,4 +77,46 @@ func (r *RepositoryStruct) GetUserByEmail(ctx context.Context, email string) (do
 		return domain.User{}, err
 	}
 	return user, nil
+}
+
+func (r *repositoryStruct) RevokeAllTokens(ctx context.Context, userId int64, sessionId int64) error {
+	query := "UPDATE sessions SET revoked_at = $1 WHERE user_id=$2 AND session_id != $3;"
+	_, err := r.db.Exec(ctx, query, time.Now(), userId, sessionId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *repositoryStruct) RevokeToken(ctx context.Context, sessionId int64) error {
+	query := "UPDATE sessions SET revoked_at = $1 WHERE session_id=$2;"
+	cmdTag, err := r.db.Exec(ctx, query, time.Now(), sessionId)
+
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return domain.ErrTokenNotFound
+	}
+
+	return nil
+}
+
+func (r *repositoryStruct) GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error) {
+	query := "SELECT session_id, user_id, refresh_token_hash, refresh_expires_at, revoked_at FROM sessions WHERE refresh_token_hash = $1;"
+
+	var token domain.Token
+
+	err := r.db.QueryRow(ctx, query, refreshToken).Scan(&token.SessionId, &token.UserId, &token.Token, &token.ExpiresAt, &token.RevokedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Token{}, domain.ErrTokenNotFound
+		}
+		return domain.Token{}, err
+	}
+
+	return token, nil
 }

@@ -203,5 +203,47 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, refreshCookie)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "Registration successful"})
+	json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"})
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		handlerLogger.ErrorContext(r.Context(), "error with cookie in logout", "error", err)
+		return
+	}
+	refreshToken := cookie.Value
+	if err := h.service.RevokeToken(r.Context(), refreshToken); err != nil {
+		handlerLogger.ErrorContext(r.Context(), "error in revoking token in logout", "error", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	accessCookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(-time.Hour),
+	}
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		Expires:  time.Now().Add(-time.Hour),
+	}
+
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"})
 }
