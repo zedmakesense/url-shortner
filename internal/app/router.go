@@ -23,7 +23,7 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger) http.Handler 
 	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
-	// mux.HandleFunc("POST /api/v1/auth/refresh", h.Refresh)
+	mux.HandleFunc("POST /api/v1/auth/refresh", h.Refresh)
 	// mux.HandleFunc("POST /api/v1/auth/forgot-password", h.ForgotPassword)
 	// mux.HandleFunc("GET /api/v1/auth/me", h.Me)
 

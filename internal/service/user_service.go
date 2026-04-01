@@ -17,6 +17,8 @@ type RepositoryInterface interface {
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	RevokeToken(ctx context.Context, sessionId int64) error
 	GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error)
+	GetByAccessToken(ctx context.Context, accessToken []byte) (domain.Token, error)
+	ReplaceTokens(ctx context.Context, accessTokenHash []byte, refreshTokenHash []byte, sessionId int64, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
 }
 
 type ServiceInterface interface {
@@ -25,6 +27,8 @@ type ServiceInterface interface {
 	GenerateToken() (string, error)
 	Login(ctx context.Context, email string, password string) (int, error)
 	RevokeToken(ctx context.Context, refreshToken string) error
+	ReplaceTokens(ctx context.Context, accessToken string, refreshToken string, userId int64, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	GetByRefreshToken(ctx context.Context, refreshToken string) (int64, error)
 }
 
 type serviceStruct struct {
@@ -87,4 +91,27 @@ func (s *serviceStruct) RevokeToken(ctx context.Context, refreshToken string) er
 		return err
 	}
 	return s.repo.RevokeToken(ctx, token.SessionId)
+}
+
+func (s *serviceStruct) ReplaceTokens(ctx context.Context, accessToken string, refreshToken string, userId int64, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+	return s.repo.ReplaceTokens(ctx, hashToken(accessToken), hashToken(refreshToken), userId, accessExpiresAt, refreshExpiresAt)
+}
+
+func (s *serviceStruct) GetByAccessToken(ctx context.Context, accessToken string) (int64, int64, error) {
+	token, err := s.repo.GetByAccessToken(ctx, hashToken(accessToken))
+	if err != nil {
+		return 0, 0, err
+	}
+	return token.SessionId, token.UserId, nil
+}
+
+func (s *serviceStruct) GetByRefreshToken(ctx context.Context, refreshToken string) (int64, error) {
+	token, err := s.repo.GetByRefreshToken(ctx, hashToken(refreshToken))
+	if err != nil {
+		return 0, err
+	}
+	if token.RevokedAt != nil {
+		return 0, domain.ErrRefreshTokenExpired
+	}
+	return token.SessionId, nil
 }
