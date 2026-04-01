@@ -7,17 +7,21 @@ import (
 	"encoding/base64"
 	"log/slog"
 	"time"
+
+	"github.com/zedmakesense/url-shortner/internal/domain"
 )
 
 type RepositoryInterface interface {
 	InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error)
 	InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 }
 
 type ServiceInterface interface {
-	UserCreate(ctx context.Context, email string, name string, password string) (int, error)
+	Register(ctx context.Context, email string, name string, password string) (int, error)
 	StoreTokens(ctx context.Context, userID int, accessToken string, refreshToken string, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
 	GenerateToken() (string, error)
+	Login(ctx context.Context, email string, password string) (int, error)
 }
 
 type serviceStruct struct {
@@ -25,15 +29,15 @@ type serviceStruct struct {
 	log  *slog.Logger
 }
 
-func NewService(repo RepositoryInterface, log *slog.Logger) *serviceStruct {
+func NewService(repo RepositoryInterface, log *slog.Logger) ServiceInterface {
 	return &serviceStruct{
 		repo: repo,
 		log:  log,
 	}
 }
 
-func (s *serviceStruct) UserCreate(ctx context.Context, email string, name string, password string) (int, error) {
-	svcLogger := s.log.With("component", "user_repository")
+func (s *serviceStruct) Register(ctx context.Context, email string, name string, password string) (int, error) {
+	svcLogger := s.log.With("component", "user_service")
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
 		svcLogger.ErrorContext(ctx, "password hashing function failed", "error", err)
@@ -64,4 +68,12 @@ func (s *serviceStruct) GenerateToken() (string, error) {
 
 func (s *serviceStruct) StoreTokens(ctx context.Context, userID int, accessToken string, refreshToken string, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
 	return s.repo.InsertSession(ctx, userID, hashToken(accessToken), hashToken(refreshToken), accessExpiresAt, refreshExpiresAt)
+}
+
+func (s *serviceStruct) Login(ctx context.Context, email string, password string) (int, error) {
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return 0, err
+	}
+	return user.ID, comparePassword(user.HashedPassword, password)
 }

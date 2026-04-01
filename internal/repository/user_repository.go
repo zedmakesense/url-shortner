@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -42,6 +43,7 @@ func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name st
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
 			return 0, domain.ErrEmailAlreadyExists
 		}
+		repoLogger.ErrorContext(ctx, "user instertion failed", "userID", userID)
 		return 0, err
 	}
 	repoLogger.InfoContext(ctx, "user inserted", "userID", userID)
@@ -49,14 +51,30 @@ func (r *RepositoryStruct) InsertUser(ctx context.Context, email string, name st
 }
 
 func (r *RepositoryStruct) InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+	repoLogger := r.log.With("component", "user_repository")
 	query := `
 		INSERT INTO sessions (user_id, access_token_hash, refresh_token_hash, access_expires_at, refresh_expires_at
 		VALUES ($1, $2, $3, $4, $5)
 	`
 	_, err := r.db.Exec(ctx, query, userID, accessTokenHash, refreshTokenHash, accessExpiresAt, refreshExpiresAt)
 	if err != nil {
+		repoLogger.ErrorContext(ctx, "session instertion failed", "userID", userID)
 		return err
 	}
 
+	repoLogger.InfoContext(ctx, "session inserted", "userID", userID)
 	return nil
+}
+
+func (r *RepositoryStruct) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
+	query := `SELECT * FROM users WHERE email=$1`
+	var user domain.User
+	err := r.db.QueryRow(ctx, query, email).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.User{}, domain.ErrUserDoesNotExist
+		}
+		return domain.User{}, err
+	}
+	return user, nil
 }

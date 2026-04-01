@@ -43,7 +43,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	userID, err := h.service.UserCreate(r.Context(), userRequest.Email, userRequest.Name, userRequest.Password)
+	userID, err := h.service.Register(r.Context(), userRequest.Email, userRequest.Name, userRequest.Password)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -55,6 +55,95 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(http.StatusInternalServerError)
 		handlerLogger.ErrorContext(r.Context(), "user creation failed", "error", err)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	accessToken, err := h.service.GenerateToken()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	refreshToken, err := h.service.GenerateToken()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	now := time.Now().UTC()
+	accessExpiresAt := now.Add(15 * time.Minute)
+	refreshExpiresAt := now.Add(7 * 24 * time.Hour)
+	if err := h.service.StoreTokens(r.Context(), userID, accessToken, refreshToken, accessExpiresAt, refreshExpiresAt); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	secure := false
+	accessCookie := &http.Cookie{
+		Name:     "access_token",
+		Value:    accessToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   15 * 60,
+	}
+	refreshCookie := &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   secure,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   7 * 24 * 60 * 60,
+	}
+
+	http.SetCookie(w, accessCookie)
+	http.SetCookie(w, refreshCookie)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Registration successful"})
+}
+
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	var userRequest domain.UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+		return
+	}
+	if !utils.IsValidEmail(userRequest.Email) {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+	}
+
+	userID, err := h.service.Login(r.Context(), userRequest.Email, userRequest.Password)
+
+	if err != nil {
+		if errors.Is(err, domain.ErrUserDoesNotExist) {
+			w.WriteHeader(http.StatusConflict)
+			if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "user does not exist"}); encErr != nil {
+				return
+			}
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}

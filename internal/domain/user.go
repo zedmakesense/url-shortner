@@ -1,10 +1,13 @@
 package domain
 
+import "time"
+
 type User struct {
-	ID             int64
+	ID             int
 	Name           string
-	Username       string
+	Email          string
 	HashedPassword string
+	CreatedAt      time.Time
 }
 
 type UserRequest struct {
