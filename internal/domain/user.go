@@ -16,6 +16,14 @@ type UserRequest struct {
 	Password string `json:"password"`
 }
 
+type Token struct {
+	SessionId int64
+	UserId    int64
+	Token     []byte
+	ExpiresAt time.Time
+	RevokedAt *time.Time
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
