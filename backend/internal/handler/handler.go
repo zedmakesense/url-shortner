@@ -3,14 +3,16 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
-	"github.com/zedmakesense/url-shortner/internal/domain"
-	"github.com/zedmakesense/url-shortner/internal/service"
-	"github.com/zedmakesense/url-shortner/internal/utils"
+	"github.com/zedmakesense/url-shortner/backend/internal/domain"
+	"github.com/zedmakesense/url-shortner/backend/internal/service"
+	"github.com/zedmakesense/url-shortner/backend/internal/utils"
 )
 
 type Handler struct {
@@ -321,4 +323,9 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, refreshCookie)
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "Token refreshed successfully"})
+}
+
+func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
+	slug, err := strconv.Atoi(r.PathValue("slug"))
+	fmt.Println(slug, err)
 }

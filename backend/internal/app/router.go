@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/rs/cors"
-	"github.com/zedmakesense/url-shortner/internal/handler"
-	"github.com/zedmakesense/url-shortner/internal/service"
+	"github.com/zedmakesense/url-shortner/backend/internal/handler"
+	"github.com/zedmakesense/url-shortner/backend/internal/service"
 )
 
 type responseWriter struct {

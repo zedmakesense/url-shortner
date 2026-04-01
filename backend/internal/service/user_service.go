@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/zedmakesense/url-shortner/internal/domain"
+	"github.com/zedmakesense/url-shortner/backend/internal/domain"
 )
 
 type RepositoryInterface interface {
