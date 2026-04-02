@@ -27,7 +27,8 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
 	mux.HandleFunc("POST /api/v1/auth/refresh", h.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/verify-email", h.VerifyEmail)
-	// mux.HandleFunc("POST /api/v1/auth/forgot-password", h.ForgotPassword)
+	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.ForgotPassword)
+	mux.HandleFunc("POST /api/v1/auth/reset-password", h.ResetPassword)
 	// mux.HandleFunc("GET /api/v1/auth/me", h.Me)
 
 	// mux.HandleFunc("GET /{slug}", h.Redirect)
