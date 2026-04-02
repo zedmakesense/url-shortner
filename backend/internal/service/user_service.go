@@ -18,6 +18,7 @@ type RepositoryInterface interface {
 	InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error)
 	InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
+	GetUserByUserID(ctx context.Context, userID int) (domain.User, error)
 	RevokeToken(ctx context.Context, sessionId int) error
 	GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error)
 	GetByAccessToken(ctx context.Context, accessToken []byte) (domain.Token, error)
@@ -38,6 +39,9 @@ type ServiceInterface interface {
 	RevokeToken(ctx context.Context, refreshToken string) error
 	ReplaceTokens(ctx context.Context, accessToken string, refreshToken string, userId int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
 	GetByRefreshToken(ctx context.Context, refreshToken string) (int, error)
+	GetByAccessToken(ctx context.Context, accessToken string) (int, int, error)
+	GetUserByUserID(ctx context.Context, userID int) (domain.User, error)
+	ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error)
 	CheckEmail(ctx context.Context, email string, userID int) error
 	RevokeEmailTokens(ctx context.Context, userID int) error
 	SendEmail(ctx context.Context, email string, userID int, expiresAt int) error
@@ -73,7 +77,7 @@ func (s *serviceStruct) Register(ctx context.Context, email string, name string,
 	}
 
 	svcLogger.InfoContext(ctx, "user created", "user_id", userID, "email", email)
-	if err := s.SendEmail(ctx, email, userID); err != nil {
+	if err := s.SendEmail(ctx, email, userID, 1); err != nil {
 		return userID, err
 	}
 	return userID, nil
@@ -120,6 +124,21 @@ func (s *serviceStruct) GetByAccessToken(ctx context.Context, accessToken string
 	token, err := s.repo.GetByAccessToken(ctx, hashToken(accessToken))
 	if err != nil {
 		return 0, 0, err
+	}
+	return token.SessionID, token.UserID, nil
+}
+
+func (s *serviceStruct) GetByUserID(ctx context.Context, userID int) (domain.User, error) {
+	return s.repo.GetUserByUserID(ctx, userID)
+}
+
+func (s *serviceStruct) ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error) {
+	token, err := s.repo.GetByAccessToken(ctx, hashToken(accessToken))
+	if err != nil {
+		return 0, 0, err
+	}
+	if token.RevokedAt != nil {
+		return 0, 0, domain.ErrAccessTokenExpired
 	}
 	return token.SessionID, token.UserID, nil
 }
@@ -218,9 +237,6 @@ func (s *serviceStruct) SendForgotPasswordMail(ctx context.Context, email string
 		if errors.Is(err, domain.ErrTokenNotFound) {
 			return domain.ErrUserDoesNotExist
 		}
-		return err
-	}
-	if err != nil {
 		return err
 	}
 	if err := s.SendEmail(ctx, email, user.ID, 1); err != nil {

@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
-	"time"
 
 	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
@@ -29,8 +28,9 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 	mux.HandleFunc("POST /api/v1/auth/verify-email", h.VerifyEmail)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.ForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", h.ResetPassword)
-	// mux.HandleFunc("GET /api/v1/auth/me", h.Me)
 
+	auth := Auth(h)
+	mux.Handle("GET /api/v1/auth/me", auth(http.HandlerFunc(h.Me)))
 	// mux.HandleFunc("GET /{slug}", h.Redirect)
 	// mux.HandleFunc("POST /api/v1/urls", h.Urls)
 	// mux.HandleFunc("GET /api/v1/urls/{slug}", h.GetURL)
@@ -56,21 +56,4 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 	})
 
 	return loggingMiddleware(log, c.Handler(mux))
-}
-
-func loggingMiddleware(log *slog.Logger, next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-
-		rw := &responseWriter{ResponseWriter: w, status: http.StatusOK}
-
-		next.ServeHTTP(rw, r)
-
-		log.InfoContext(r.Context(), "request",
-			"method", r.Method,
-			"path", r.URL.Path,
-			"status", rw.status,
-			"duration_ms", time.Since(start).Milliseconds(),
-		)
-	})
 }

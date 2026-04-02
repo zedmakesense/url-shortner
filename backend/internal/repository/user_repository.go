@@ -82,6 +82,22 @@ func (r *repositoryStruct) GetUserByEmail(ctx context.Context, email string) (do
 	return user, nil
 }
 
+func (r *repositoryStruct) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
+	query := `
+		SELECT * FROM users
+		WHERE user_id = $1;
+	`
+	var user domain.User
+	err := r.db.QueryRow(ctx, query, userID).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.User{}, domain.ErrUserDoesNotExist
+		}
+		return domain.User{}, err
+	}
+	return user, nil
+}
+
 func (r *repositoryStruct) RevokeAllTokens(ctx context.Context, userId int, sessionId int) error {
 	query := `
 		UPDATE sessions SET revoked_at = $1

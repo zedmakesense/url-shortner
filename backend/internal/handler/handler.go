@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -387,6 +388,40 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"message": "password reset successfull"})
+}
+
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	cookie, _ := r.Cookie("access_token")
+	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	user, err := h.service.GetUserByUserID(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	resp := domain.UserResponse{
+		ID:              user.ID,
+		Name:            user.Name,
+		Email:           user.Email,
+		IsEmailVerified: user.IsEmailVerified,
+		CreatedAt:       user.CreatedAt,
+	}
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+func (h *Handler) ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error) {
+	return h.service.ValidateAccessToken(ctx, accessToken)
 }
 
 func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {

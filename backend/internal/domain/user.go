@@ -11,6 +11,14 @@ type User struct {
 	CreatedAt       time.Time
 }
 
+type UserResponse struct {
+	ID              int       `json:"id"`
+	Name            string    `json:"name"`
+	Email           string    `json:"email"`
+	IsEmailVerified bool      `json:"is_email_verified"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
 type UserRequest struct {
 	Name     string `json:"name"`
 	Email    string `json:"email"`
