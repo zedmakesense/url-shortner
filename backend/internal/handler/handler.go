@@ -328,6 +328,17 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"message": "Token refreshed successfully"})
 }
 
+func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "missing token"}); encErr != nil {
+			return
+		}
+		return
+	}
+}
+
 func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	slug, err := strconv.Atoi(r.PathValue("slug"))
 	fmt.Println(slug, err)

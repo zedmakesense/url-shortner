@@ -3,6 +3,7 @@ package app
 import (
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 	"time"
 
 	"github.com/resend/resend-go/v3"
@@ -25,6 +26,7 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
 	mux.HandleFunc("POST /api/v1/auth/refresh", h.Refresh)
+	mux.HandleFunc("POST /api/v1/auth/verify-email", h.VerifyEmail)
 	// mux.HandleFunc("POST /api/v1/auth/forgot-password", h.ForgotPassword)
 	// mux.HandleFunc("GET /api/v1/auth/me", h.Me)
 
@@ -32,6 +34,9 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 	// mux.HandleFunc("POST /api/v1/urls", h.Urls)
 	// mux.HandleFunc("GET /api/v1/urls/{slug}", h.GetURL)
 	// mux.HandleFunc("DELETE /api/v1/urls/{slug}", h.DeleteURL)
+
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 
 	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

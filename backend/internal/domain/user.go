@@ -3,11 +3,12 @@ package domain
 import "time"
 
 type User struct {
-	ID             int
-	Name           string
-	Email          string
-	HashedPassword string
-	CreatedAt      time.Time
+	ID              int
+	Name            string
+	Email           string
+	HashedPassword  string
+	IsEmailVerified bool
+	CreatedAt       time.Time
 }
 
 type UserRequest struct {
@@ -17,11 +18,20 @@ type UserRequest struct {
 }
 
 type Token struct {
-	SessionId int64
-	UserId    int64
+	SessionID int
+	UserID    int
 	Token     []byte
 	ExpiresAt time.Time
 	RevokedAt *time.Time
+}
+
+type EmailToken struct {
+	ID          int
+	UserID      int
+	HashedToken []byte
+	ExpiresAt   time.Time
+	UsedAt      *time.Time
+	CreatedAt   time.Time
 }
 
 type ErrorResponse struct {
