@@ -280,7 +280,6 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Internal error"})
-		log.Println(err)
 		return
 	}
 
@@ -289,7 +288,6 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Internal error"})
-		log.Println(err)
 		return
 	}
 
@@ -299,7 +297,6 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Server error"})
-		log.Println(err)
 		return
 	}
 
@@ -335,6 +332,12 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "missing token"}); encErr != nil {
 			return
 		}
+		return
+	}
+	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Verification failed"})
 		return
 	}
 }
