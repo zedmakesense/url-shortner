@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
 	"github.com/zedmakesense/url-shortner/backend/internal/handler"
 	"github.com/zedmakesense/url-shortner/backend/internal/service"
@@ -15,10 +16,10 @@ type responseWriter struct {
 	status int
 }
 
-func NewRouter(service service.ServiceInterface, log *slog.Logger) http.Handler {
+func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.Client) http.Handler {
 	mux := http.NewServeMux()
 
-	h := handler.NewHandler(service, log)
+	h := handler.NewHandler(service, log, mail)
 
 	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)

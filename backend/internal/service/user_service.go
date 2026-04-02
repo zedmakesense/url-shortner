@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/resend/resend-go/v3"
 	"github.com/zedmakesense/url-shortner/backend/internal/domain"
 )
 
@@ -34,12 +35,14 @@ type ServiceInterface interface {
 type serviceStruct struct {
 	repo RepositoryInterface
 	log  *slog.Logger
+	mail *resend.Client
 }
 
-func NewService(repo RepositoryInterface, log *slog.Logger) ServiceInterface {
+func NewService(repo RepositoryInterface, log *slog.Logger, mail *resend.Client) ServiceInterface {
 	return &serviceStruct{
 		repo: repo,
 		log:  log,
+		mail: mail,
 	}
 }
 

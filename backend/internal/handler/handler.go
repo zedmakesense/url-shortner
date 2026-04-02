@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/resend/resend-go/v3"
 	"github.com/zedmakesense/url-shortner/backend/internal/domain"
 	"github.com/zedmakesense/url-shortner/backend/internal/service"
 	"github.com/zedmakesense/url-shortner/backend/internal/utils"
@@ -18,12 +19,14 @@ import (
 type Handler struct {
 	service service.ServiceInterface
 	log     *slog.Logger
+	mail    *resend.Client
 }
 
-func NewHandler(service service.ServiceInterface, log *slog.Logger) *Handler {
+func NewHandler(service service.ServiceInterface, log *slog.Logger, mail *resend.Client) *Handler {
 	return &Handler{
 		service: service,
 		log:     log,
+		mail:    mail,
 	}
 }
 

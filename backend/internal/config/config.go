@@ -9,13 +9,15 @@ import (
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
+	"github.com/zedmakesense/url-shortner/backend/internal/domain"
 )
 
 type Config struct {
-	App   AppConfig
-	Log   LogConfig
-	DB    DBConfig
-	Redis RedisConfig
+	App    AppConfig
+	Log    LogConfig
+	DB     DBConfig
+	Redis  RedisConfig
+	Resend ResendConfig
 }
 
 type AppConfig struct {
@@ -29,6 +31,10 @@ type LogConfig struct {
 	Level     slog.Level
 	Format    string
 	AddSource bool
+}
+
+type ResendConfig struct {
+	ApiKey string
 }
 
 type RedisConfig struct {
@@ -55,6 +61,9 @@ type DBConfig struct {
 
 func Load() (*Config, error) {
 	cfg := &Config{}
+	if err := cfg.LoadResendConfig(); err != nil {
+		return nil, fmt.Errorf("failed to load Resend config: %w", err)
+	}
 	if err := cfg.LoadAppConfig(); err != nil {
 		return nil, fmt.Errorf("failed to load App config: %w", err)
 	}
@@ -72,6 +81,14 @@ func (c *Config) LoadLogConfig() {
 	c.Log.Level = parseLevel(getEnv("LOG_LEVEL", "debug"))
 	c.Log.Format = getEnv("LOG_FORMAT", "text")
 	c.Log.AddSource = parseBool(getEnv("LOG_ADDSOURCE", "true"))
+}
+
+func (c *Config) LoadResendConfig() error {
+	c.Resend.ApiKey = getEnv("RESEND_API", "")
+	if c.Resend.ApiKey == "" {
+		return domain.ErrResendApiKeyNotFound
+	}
+	return nil
 }
 
 func (c *Config) LoadAppConfig() error {

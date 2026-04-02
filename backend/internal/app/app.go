@@ -9,6 +9,7 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
+	"github.com/resend/resend-go/v3"
 	"github.com/zedmakesense/url-shortner/backend/internal/config"
 	"github.com/zedmakesense/url-shortner/backend/internal/logger"
 	"github.com/zedmakesense/url-shortner/backend/internal/repository"
@@ -31,6 +32,8 @@ func New() (*App, error) {
 
 	log := logger.NewLogger(cfg.Log)
 	log.Info("Application Started")
+
+	mail := resend.NewClient(cfg.Resend.ApiKey)
 
 	dbconfig, err := pgxpool.ParseConfig(cfg.DatabaseUrl())
 	if err != nil {
@@ -78,8 +81,8 @@ func New() (*App, error) {
 	log.Info("Redis connection established")
 
 	repositoryVariable := repository.NewRepository(dbpool, rdb, log)
-	serviceVariable := service.NewService(repositoryVariable, log)
-	router := NewRouter(serviceVariable, log)
+	serviceVariable := service.NewService(repositoryVariable, log, mail)
+	router := NewRouter(serviceVariable, log, mail)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.App.Port,
