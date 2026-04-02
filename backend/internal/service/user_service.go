@@ -39,6 +39,7 @@ type ServiceInterface interface {
 	CheckEmail(ctx context.Context, email string, userID int) error
 	RevokeEmailTokens(ctx context.Context, userID int) error
 	SendEmail(ctx context.Context, email string, userID int) error
+	VerifyEmail(ctx context.Context, token string) error
 }
 
 type serviceStruct struct {
