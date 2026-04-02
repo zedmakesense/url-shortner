@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
+  is_email_verified BOOLEAN NOT NULL DEFAULT FALSE
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -14,6 +15,15 @@ CREATE TABLE IF NOT EXISTS sessions (
   access_expires_at TIMESTAMPTZ NOT NULL,
   refresh_expires_at TIMESTAMPTZ NOT NULL,
   revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS email_table (
+  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
+  token_hash BYTEA NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -36,10 +46,12 @@ CREATE TABLE IF NOT EXISTS clicks (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_urls_short_code ON urls (short_code);
-
 CREATE INDEX IF NOT EXISTS idx_urls_user_id ON urls (user_id);
 
 CREATE INDEX IF NOT EXISTS idx_clicks_url_id ON clicks (url_id);
 
 CREATE INDEX IF NOT EXISTS idx_clicks_created_at ON clicks (created_at);
+
+CREATE INDEX IF NOT EXISTS idx_email_verif_user_id ON email_table (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions (user_id);
