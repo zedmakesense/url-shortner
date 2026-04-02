@@ -244,3 +244,17 @@ func (r *repositoryStruct) MarkUserVerified(ctx context.Context, userID int) err
 
 	return nil
 }
+
+func (r *repositoryStruct) ChangePassword(ctx context.Context, userID int, hashedPassword string) error {
+	query := `
+		UPDATE users
+		SET password_hash = $1
+		WHERE user_id = $2
+	`
+	_, err := r.db.Exec(ctx, query, hashedPassword, userID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

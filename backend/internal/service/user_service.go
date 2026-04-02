@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -26,6 +27,7 @@ type RepositoryInterface interface {
 	RevokeEmailTokens(ctx context.Context, userID int) error
 	InsertEmailToken(ctx context.Context, userID int, HashedToken []byte, expiresAt time.Time) error
 	MarkUserVerified(ctx context.Context, userID int) error
+	ChangePassword(ctx context.Context, userID int, hashedPassword string) error
 }
 
 type ServiceInterface interface {
@@ -38,8 +40,9 @@ type ServiceInterface interface {
 	GetByRefreshToken(ctx context.Context, refreshToken string) (int, error)
 	CheckEmail(ctx context.Context, email string, userID int) error
 	RevokeEmailTokens(ctx context.Context, userID int) error
-	SendEmail(ctx context.Context, email string, userID int) error
+	SendEmail(ctx context.Context, email string, userID int, expiresAt int) error
 	VerifyEmail(ctx context.Context, token string) error
+	SendForgotPasswordMail(ctx context.Context, email string) error
 }
 
 type serviceStruct struct {
@@ -149,13 +152,13 @@ func (s *serviceStruct) RevokeEmailTokens(ctx context.Context, userID int) error
 	return s.repo.RevokeEmailTokens(ctx, userID)
 }
 
-func (s *serviceStruct) SendEmail(ctx context.Context, email string, userID int) error {
+func (s *serviceStruct) SendEmail(ctx context.Context, email string, userID int, expiresAt int) error {
 	token, err := s.GenerateToken()
 	if err != nil {
 		return err
 	}
 	hashedToken := hashToken(token)
-	s.repo.InsertEmailToken(ctx, userID, hashedToken, time.Now().Add(24*time.Hour))
+	s.repo.InsertEmailToken(ctx, userID, hashedToken, time.Now().Add(time.Duration(expiresAt)*time.Hour))
 
 	verifyURL := fmt.Sprintf("http://localhost:3000/verify-email?token=%s", token)
 
@@ -187,6 +190,40 @@ func (s *serviceStruct) VerifyEmail(ctx context.Context, token string) error {
 		return err
 	}
 	if err := s.repo.MarkUserVerified(ctx, emailTable.UserID); err != nil {
+		return err
+	}
+	if err := s.repo.RevokeEmailTokens(ctx, emailTable.UserID); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *serviceStruct) ChangePassword(ctx context.Context, userID int, password string) error {
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return err
+	}
+	return s.repo.ChangePassword(ctx, userID, hashedPassword)
+}
+
+func (s *serviceStruct) SendForgotPasswordMail(ctx context.Context, email string) error {
+	user, err := s.repo.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserDoesNotExist) {
+			return domain.ErrUserDoesNotExist
+		}
+		return err
+	}
+	if _, err := s.repo.GetEmailTableByID(ctx, user.ID); err != nil {
+		if errors.Is(err, domain.ErrTokenNotFound) {
+			return domain.ErrUserDoesNotExist
+		}
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	if err := s.SendEmail(ctx, email, user.ID, 1); err != nil {
 		return err
 	}
 	return nil

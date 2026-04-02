@@ -340,6 +340,53 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"error": "Verification failed"})
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "verification successfull"})
+}
+
+func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
+	var userRequest domain.UserRequest
+	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid json in Register", "error", err)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+		return
+	}
+	if !utils.IsValidEmail(userRequest.Email) {
+		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid email in Register")
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+	}
+	if err := h.service.SendForgotPasswordMail(r.Context(), userRequest.Email); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "forgot password email successfully sended"})
+}
+
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "missing token"}); encErr != nil {
+			return
+		}
+		return
+	}
+	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "password reset failed"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "password reset successfull"})
 }
 
 func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
