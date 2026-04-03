@@ -4,11 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/resend/resend-go/v3"
@@ -415,7 +413,8 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:       user.CreatedAt,
 	}
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
 		return
 	}
 }
@@ -424,7 +423,14 @@ func (h *Handler) ValidateAccessToken(ctx context.Context, accessToken string) (
 	return h.service.ValidateAccessToken(ctx, accessToken)
 }
 
-func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
-	slug, err := strconv.Atoi(r.PathValue("slug"))
-	fmt.Println(slug, err)
+func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
+	shortCode := r.PathValue("slug")
+	longURL, err := h.service.GetLongURL(r.Context(), shortCode)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	h.service.URLClicked(r.Context(), shortCode)
+	http.Redirect(w, r, longURL, http.StatusMovedPermanently)
 }

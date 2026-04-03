@@ -42,6 +42,16 @@ type EmailToken struct {
 	CreatedAt   time.Time
 }
 
+type URL struct {
+	ID         int
+	ShortCode  string
+	LongURL    string
+	UserID     int
+	CreatedAt  time.Time
+	ExpiresAt  *time.Time
+	ClickCount int
+}
+
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

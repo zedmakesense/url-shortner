@@ -31,10 +31,11 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 
 	auth := Auth(h)
 	mux.Handle("GET /api/v1/auth/me", auth(http.HandlerFunc(h.Me)))
-	// mux.HandleFunc("GET /{slug}", h.Redirect)
-	// mux.HandleFunc("POST /api/v1/urls", h.Urls)
-	// mux.HandleFunc("GET /api/v1/urls/{slug}", h.GetURL)
-	// mux.HandleFunc("DELETE /api/v1/urls/{slug}", h.DeleteURL)
+	mux.Handle("GET /{slug}", auth(http.HandlerFunc(h.Redirect)))
+	// mux.Handle("POST /api/v1/urls", auth(http.HandlerFunc(h.InsertURLs)))
+	// mux.Handle("GET /api/v1/urls", auth(http.HandlerFunc(h.GetURLs)))
+	// mux.Handle("GET /api/v1/urls/{slug}", auth(http.HandlerFunc(h.GetURL)))
+	// mux.Handle("DELETE /api/v1/urls/{slug}", auth(http.HandlerFunc(h.DeleteURL)))
 
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)

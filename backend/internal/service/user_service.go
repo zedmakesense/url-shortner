@@ -29,6 +29,8 @@ type RepositoryInterface interface {
 	InsertEmailToken(ctx context.Context, userID int, HashedToken []byte, expiresAt time.Time) error
 	MarkUserVerified(ctx context.Context, userID int) error
 	ChangePassword(ctx context.Context, userID int, hashedPassword string) error
+	GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error)
+	URLClicked(ctx context.Context, shortCode string) error
 }
 
 type ServiceInterface interface {
@@ -47,6 +49,8 @@ type ServiceInterface interface {
 	SendEmail(ctx context.Context, email string, userID int, expiresAt int) error
 	VerifyEmail(ctx context.Context, token string) error
 	SendForgotPasswordMail(ctx context.Context, email string) error
+	GetLongURL(ctx context.Context, shortCode string) (string, error)
+	URLClicked(ctx context.Context, shortCode string) error
 }
 
 type serviceStruct struct {
@@ -128,7 +132,7 @@ func (s *serviceStruct) GetByAccessToken(ctx context.Context, accessToken string
 	return token.SessionID, token.UserID, nil
 }
 
-func (s *serviceStruct) GetByUserID(ctx context.Context, userID int) (domain.User, error) {
+func (s *serviceStruct) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
 	return s.repo.GetUserByUserID(ctx, userID)
 }
 
@@ -243,4 +247,13 @@ func (s *serviceStruct) SendForgotPasswordMail(ctx context.Context, email string
 		return err
 	}
 	return nil
+}
+
+func (s *serviceStruct) GetLongURL(ctx context.Context, shortCode string) (string, error) {
+	url, err := s.repo.GetURLByShortCode(ctx, shortCode)
+	return url.LongURL, err
+}
+
+func (s *serviceStruct) URLClicked(ctx context.Context, shortCode string) error {
+	return s.repo.URLClicked(ctx, shortCode)
 }

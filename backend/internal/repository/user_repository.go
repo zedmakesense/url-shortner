@@ -274,3 +274,37 @@ func (r *repositoryStruct) ChangePassword(ctx context.Context, userID int, hashe
 
 	return nil
 }
+
+func (r *repositoryStruct) GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error) {
+	query := `
+		SELECT * FROM urls
+		WHERE short_code = $1
+	`
+	var url domain.URL
+	err := r.db.QueryRow(ctx, query, shortCode).Scan(&url.ID, &url.ShortCode, &url.LongURL, &url.UserID, &url.CreatedAt, &url.ExpiresAt, &url.ClickCount)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.URL{}, domain.ErrTokenNotFound
+		}
+		return domain.URL{}, err
+	}
+	return url, nil
+}
+
+func (r *repositoryStruct) URLClicked(ctx context.Context, shortCode string) error {
+	query := `
+		UPDATE urls
+		SET click_count = click_count + 1
+		WHERE short_code = $1;
+	`
+	_, err := r.db.Query(ctx, query, shortCode)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.ErrURLDoesNotExist
+		}
+		return err
+	}
+	return nil
+}

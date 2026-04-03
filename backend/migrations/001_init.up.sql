@@ -35,22 +35,9 @@ CREATE TABLE IF NOT EXISTS urls (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
   click_count BIGINT NOT NULL DEFAULT 0,
-  UNIQUE (user_id, short_code)
-);
-
-CREATE TABLE IF NOT EXISTS clicks (
-  id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-  url_id BIGINT NOT NULL REFERENCES urls (id) ON DELETE CASCADE,
-  ip_address TEXT,
-  user_agent TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_urls_user_id ON urls (user_id);
-
-CREATE INDEX IF NOT EXISTS idx_clicks_url_id ON clicks (url_id);
-
-CREATE INDEX IF NOT EXISTS idx_clicks_created_at ON clicks (created_at);
 
 CREATE INDEX IF NOT EXISTS idx_email_verif_user_id ON email_table (user_id);
 

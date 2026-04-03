@@ -14,3 +14,6 @@ var ErrResendApiKeyNotFound = errors.New("resend api key not found")
 var ErrEmailAlreadyVerified = errors.New("email already verified")
 
 var ErrEmailVerificationFailed = errors.New("email verification failed")
+
+var ErrURLAlreadyExist = errors.New("url short code already exists")
+var ErrURLDoesNotExist = errors.New("url short code does not exists")
