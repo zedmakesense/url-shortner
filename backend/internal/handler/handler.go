@@ -434,3 +434,31 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	h.service.URLClicked(r.Context(), shortCode)
 	http.Redirect(w, r, longURL, http.StatusMovedPermanently)
 }
+
+func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
+	cookie, _ := r.Cookie("access_token")
+	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+
+	var url domain.URL
+	if err := json.NewDecoder(r.Body).Decode(&url); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+		return
+	}
+
+	url.ShortCode, err = h.service.InsertURL(r.Context(), url.LongURL, userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(url)
+}

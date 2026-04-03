@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/big"
 	"time"
 
 	"github.com/resend/resend-go/v3"
@@ -31,6 +32,7 @@ type RepositoryInterface interface {
 	ChangePassword(ctx context.Context, userID int, hashedPassword string) error
 	GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error)
 	URLClicked(ctx context.Context, shortCode string) error
+	InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error
 }
 
 type ServiceInterface interface {
@@ -51,7 +53,10 @@ type ServiceInterface interface {
 	SendForgotPasswordMail(ctx context.Context, email string) error
 	GetLongURL(ctx context.Context, shortCode string) (string, error)
 	URLClicked(ctx context.Context, shortCode string) error
+	InsertURL(ctx context.Context, longURL string, userID int) (string, error)
 }
+
+const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 type serviceStruct struct {
 	repo RepositoryInterface
@@ -256,4 +261,27 @@ func (s *serviceStruct) GetLongURL(ctx context.Context, shortCode string) (strin
 
 func (s *serviceStruct) URLClicked(ctx context.Context, shortCode string) error {
 	return s.repo.URLClicked(ctx, shortCode)
+}
+
+func generateCode(n int) (string, error) {
+	code := make([]byte, n)
+	for i := 0; i < n; i++ {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(alphabet))))
+		if err != nil {
+			return "", err
+		}
+		code[i] = alphabet[num.Int64()]
+	}
+	return string(code), nil
+}
+
+func (s *serviceStruct) InsertURL(ctx context.Context, longURL string, userID int) (string, error) {
+	shortCode, err := generateCode(5)
+	if err != nil {
+		return "", err
+	}
+	if err := s.repo.InsertURL(ctx, shortCode, longURL, userID, time.Now()); err != nil {
+		return "", err
+	}
+	return shortCode, nil
 }
