@@ -291,6 +291,22 @@ func (r *repositoryStruct) GetURLByShortCode(ctx context.Context, shortCode stri
 	return url, nil
 }
 
+func (r *repositoryStruct) InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error {
+	query := `
+		INSERT INTO urls (short_code, long_url, user_id, created_at)
+		VALUES($1, $2, $3, $4)
+	`
+	_, err := r.db.Query(ctx, query, shortCode, longURL, userID, createdAt)
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.ErrURLAlreadyExist
+		}
+		return err
+	}
+	return nil
+}
+
 func (r *repositoryStruct) URLClicked(ctx context.Context, shortCode string) error {
 	query := `
 		UPDATE urls
