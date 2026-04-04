@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"os/user"
 	"time"
 
 	"github.com/resend/resend-go/v3"
@@ -31,6 +32,7 @@ type RepositoryInterface interface {
 	MarkUserVerified(ctx context.Context, userID int) error
 	ChangePassword(ctx context.Context, userID int, hashedPassword string) error
 	GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error)
+	GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error)
 	URLClicked(ctx context.Context, shortCode string) error
 	InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error
 }
@@ -54,6 +56,7 @@ type ServiceInterface interface {
 	GetLongURL(ctx context.Context, shortCode string) (string, error)
 	URLClicked(ctx context.Context, shortCode string) error
 	InsertURL(ctx context.Context, longURL string, userID int) (string, error)
+	GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error)
 }
 
 const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -284,4 +287,8 @@ func (s *serviceStruct) InsertURL(ctx context.Context, longURL string, userID in
 		return "", err
 	}
 	return shortCode, nil
+}
+
+func (s *serviceStruct) GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error){
+	return s.repo.GetURLByUserID(ctx, userID)
 }

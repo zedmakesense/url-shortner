@@ -462,3 +462,24 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(url)
 }
+
+func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
+	cookie, _ := r.Cookie("access_token")
+	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	urls, err := h.service.GetURLByUserID(r.Context(), userID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(urls); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
