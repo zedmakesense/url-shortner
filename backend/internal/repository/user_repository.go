@@ -291,6 +291,40 @@ func (r *repositoryStruct) GetURLByShortCode(ctx context.Context, shortCode stri
 	return url, nil
 }
 
+func (r *repositoryStruct) GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error) {
+	query := `
+		SELECT * FROM urls
+		WHERE user_id = $1
+	`
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var urls []domain.URL
+	for rows.Next() {
+		var u domain.URL
+		if err := rows.Scan(
+			&u.ID,
+			&u.ShortCode,
+			&u.LongURL,
+			&u.UserID,
+			&u.CreatedAt,
+			&u.ExpiresAt,
+			&u.ClickCount,
+		); err != nil {
+			return nil, err
+		}
+		urls = append(urls, u)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return urls, nil
+}
+
 func (r *repositoryStruct) InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error {
 	query := `
 		INSERT INTO urls (short_code, long_url, user_id, created_at)
