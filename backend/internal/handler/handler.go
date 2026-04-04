@@ -498,3 +498,15 @@ func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *Handler) DeleteURL(w http.ResponseWriter, r *http.Request) {
+	shortCode := r.PathValue("slug")
+	err := h.service.DeleteURLByShortCode(r.Context(), shortCode)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"message": "long url deleted successfully"})
+}

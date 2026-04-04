@@ -35,7 +35,7 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 	mux.Handle("POST /api/v1/urls", auth(http.HandlerFunc(h.InsertURL)))
 	mux.Handle("GET /api/v1/urls", auth(http.HandlerFunc(h.GetURLs)))
 	mux.Handle("GET /api/v1/urls/{slug}", auth(http.HandlerFunc(h.GetURL)))
-	// mux.Handle("DELETE /api/v1/urls/{slug}", auth(http.HandlerFunc(h.DeleteURL)))
+	mux.Handle("DELETE /api/v1/urls/{slug}", auth(http.HandlerFunc(h.DeleteURL)))
 
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)

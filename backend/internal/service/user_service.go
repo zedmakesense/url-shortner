@@ -34,6 +34,7 @@ type RepositoryInterface interface {
 	GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error)
 	URLClicked(ctx context.Context, shortCode string) error
 	InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error
+	DeleteURLByShortCode(ctx context.Context, shortCode string) error
 }
 
 type ServiceInterface interface {
@@ -57,6 +58,7 @@ type ServiceInterface interface {
 	InsertURL(ctx context.Context, longURL string, userID int) (string, error)
 	GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error)
 	GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error)
+	DeleteURLByShortCode(ctx context.Context, shortCode string) error
 }
 
 const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
@@ -295,4 +297,8 @@ func (s *serviceStruct) GetURLByUserID(ctx context.Context, userID int) ([]domai
 
 func (s *serviceStruct) GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error) {
 	return s.repo.GetURLByShortCode(ctx, shortCode)
+}
+
+func (s *serviceStruct) DeleteURLByShortCode(ctx context.Context, shortCode string) error {
+	return s.repo.DeleteURLByShortCode(ctx, shortCode)
 }

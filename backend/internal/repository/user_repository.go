@@ -358,3 +358,21 @@ func (r *repositoryStruct) URLClicked(ctx context.Context, shortCode string) err
 	}
 	return nil
 }
+
+func (r *repositoryStruct) DeleteURLByShortCode(ctx context.Context, shortCode string) error {
+	query := `
+		DELETE FROM urls
+		WHERE short_code = $1
+	`
+
+	_, err := r.db.Query(ctx, query, shortCode)
+
+	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return domain.ErrURLDoesNotExist
+		}
+		return err
+	}
+	return nil
+}
