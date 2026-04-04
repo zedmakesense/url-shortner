@@ -483,3 +483,18 @@ func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
+	shortCode := r.PathValue("slug")
+	urls, err := h.service.GetURLByShortCode(r.Context(), shortCode)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(urls); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
