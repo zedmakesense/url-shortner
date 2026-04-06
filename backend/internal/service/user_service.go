@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/resend/resend-go/v3"
-	"github.com/zedmakesense/url-shortner/backend/internal/domain"
+	"github.com/zedmakesense/url-shortner/internal/domain"
 )
 
 type RepositoryInterface interface {

@@ -7,8 +7,8 @@ import (
 
 	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
-	"github.com/zedmakesense/url-shortner/backend/internal/handler"
-	"github.com/zedmakesense/url-shortner/backend/internal/service"
+	"github.com/zedmakesense/url-shortner/internal/handler"
+	"github.com/zedmakesense/url-shortner/internal/service"
 )
 
 type responseWriter struct {

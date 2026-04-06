@@ -9,7 +9,7 @@ import (
 	"time"
 
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/zedmakesense/url-shortner/backend/internal/domain"
+	"github.com/zedmakesense/url-shortner/internal/domain"
 )
 
 type Config struct {

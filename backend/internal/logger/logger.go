@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/zedmakesense/url-shortner/backend/internal/config"
+	"github.com/zedmakesense/url-shortner/internal/config"
 )
 
 func NewLogger(cfg config.LogConfig) *slog.Logger {

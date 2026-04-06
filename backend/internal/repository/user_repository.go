@@ -10,7 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"github.com/zedmakesense/url-shortner/backend/internal/domain"
+	"github.com/zedmakesense/url-shortner/internal/domain"
 )
 
 type repositoryStruct struct {

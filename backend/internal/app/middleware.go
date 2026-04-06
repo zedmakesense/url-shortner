@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/zedmakesense/url-shortner/backend/internal/handler"
+	"github.com/zedmakesense/url-shortner/internal/handler"
 )
 
 func loggingMiddleware(log *slog.Logger, next http.Handler) http.Handler {

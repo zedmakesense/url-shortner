@@ -10,10 +10,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/resend/resend-go/v3"
-	"github.com/zedmakesense/url-shortner/backend/internal/config"
-	"github.com/zedmakesense/url-shortner/backend/internal/logger"
-	"github.com/zedmakesense/url-shortner/backend/internal/repository"
-	"github.com/zedmakesense/url-shortner/backend/internal/service"
+	"github.com/zedmakesense/url-shortner/internal/config"
+	"github.com/zedmakesense/url-shortner/internal/logger"
+	"github.com/zedmakesense/url-shortner/internal/repository"
+	"github.com/zedmakesense/url-shortner/internal/service"
 )
 
 type App struct {

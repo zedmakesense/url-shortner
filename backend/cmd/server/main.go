@@ -7,9 +7,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zedmakesense/url-shortner/backend/internal/app"
-	"github.com/zedmakesense/url-shortner/backend/internal/config"
-	"github.com/zedmakesense/url-shortner/backend/internal/logger"
+	"github.com/zedmakesense/url-shortner/internal/app"
+	"github.com/zedmakesense/url-shortner/internal/config"
+	"github.com/zedmakesense/url-shortner/internal/logger"
 )
 
 const (
