@@ -40,6 +40,14 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+	if utils.IsStructEmpty(userRequest) {
+		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid json in Register")
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+		return
+	}
 	if !utils.IsValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.ErrorContext(r.Context(), "invalid email in Register")
@@ -125,6 +133,13 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var userRequest domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+		return
+	}
+	if userRequest.Password == "" || userRequest.Email == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
 			return
@@ -446,6 +461,13 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 
 	var url domain.URL
 	if err := json.NewDecoder(r.Body).Decode(&url); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
+			return
+		}
+		return
+	}
+	if utils.IsStructEmpty(url) {
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
 			return
