@@ -54,7 +54,10 @@ services:
     env_file:
       - .env
     volumes:
-      - ./migrations:/migrations
+      - ./backend/migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

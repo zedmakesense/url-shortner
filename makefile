@@ -24,19 +24,19 @@ MIGRATE_DSN = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NA
 
 migrate-up:
 	docker compose run --rm migrate \
-		-path=/backend/migrations \
+  	-path=/migrations \
 		-database="$(MIGRATE_DSN)" \
 		up
 
 migrate-down:
 	docker compose run --rm migrate \
-	  -path=/backend/migrations \
+	  -path=/migrations \
 		-database="$(MIGRATE_DSN)" \
 		down 1
 
 migrate-version:
 	docker compose run --rm migrate \
-	  -path=/backend/migrations \
+    -path=/migrations \
 		-database="$(MIGRATE_DSN)" \
 		version
 

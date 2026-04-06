@@ -21,6 +21,7 @@ func NewRouter(service service.ServiceInterface, log *slog.Logger, mail *resend.
 
 	h := handler.NewHandler(service, log, mail)
 
+	// creating user takes name, email and password
 	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)

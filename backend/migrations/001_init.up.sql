@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
-  is_email_verified BOOLEAN NOT NULL DEFAULT FALSE
+  is_email_verified BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS urls (
   user_id BIGINT NOT NULL REFERENCES users (user_id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   expires_at TIMESTAMPTZ,
-  click_count BIGINT NOT NULL DEFAULT 0,
+  click_count BIGINT NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_urls_user_id ON urls (user_id);
