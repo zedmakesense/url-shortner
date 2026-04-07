@@ -12,13 +12,13 @@ compose:
 	if [ -z "$$ENV" ]; then ENV="$(ENV)"; fi; \
 	ACTIONS=$$(echo '$(MAKECMDGOALS)' | sed 's/dev\|prod//g'); \
 	case "$$ACTIONS" in \
+		*migrate-up*) GOAL=migrate-up ;; \
+		*migrate-down*) GOAL=migrate-down ;; \
+		*migrate-version*) GOAL=migrate-version ;; \
 		*up*) GOAL=up ;; \
 		*down-force*) GOAL=down-force ;; \
 		*down*) GOAL=down ;; \
 		*logs*) GOAL=logs ;; \
-		*migrate-up*) GOAL=migrate-up ;; \
-		*migrate-down*) GOAL=migrate-down ;; \
-		*migrate-version*) GOAL=migrate-version ;; \
 		*) GOAL=up ;; \
 	esac; \
 	case "$$GOAL" in \
