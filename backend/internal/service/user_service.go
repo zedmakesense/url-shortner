@@ -78,10 +78,8 @@ func NewService(repo RepositoryInterface, log *slog.Logger, mail *resend.Client)
 }
 
 func (s *serviceStruct) Register(ctx context.Context, email string, name string, password string) (int, error) {
-	svcLogger := s.log.With("component", "user_service")
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
-		svcLogger.ErrorContext(ctx, "password hashing function failed", "error", err)
 		return 0, err
 	}
 
@@ -90,7 +88,6 @@ func (s *serviceStruct) Register(ctx context.Context, email string, name string,
 		return 0, err
 	}
 
-	svcLogger.InfoContext(ctx, "user created", "user_id", userID, "email", email)
 	if err := s.SendEmail(ctx, email, userID, 1); err != nil {
 		return userID, err
 	}

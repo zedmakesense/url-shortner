@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log"
 	"log/slog"
 	"net/http"
 	"time"
@@ -77,6 +76,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := h.service.GenerateToken()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "access token generation failed", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -86,6 +86,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := h.service.GenerateToken()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "refresh token generation failed", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -97,6 +98,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	refreshExpiresAt := now.Add(7 * 24 * time.Hour)
 	if err := h.service.StoreTokens(r.Context(), userID, accessToken, refreshToken, accessExpiresAt, refreshExpiresAt); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "access token generation failed", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -131,9 +133,11 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	var userRequest domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid request body", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
 			return
 		}
@@ -148,6 +152,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	if !utils.IsValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid request body")
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
 			return
 		}
@@ -158,12 +163,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDoesNotExist) {
 			w.WriteHeader(http.StatusConflict)
+			handlerLogger.ErrorContext(r.Context(), "User does not exist", "error", err)
 			if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "user does not exist"}); encErr != nil {
 				return
 			}
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "service Login err", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -173,6 +180,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	accessToken, err := h.service.GenerateToken()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "access token generation failed", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -182,6 +190,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := h.service.GenerateToken()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "refresh generation token failed", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -269,10 +278,12 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
+		handlerLogger.ErrorContext(r.Context(), "error in revoking token in logout", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
@@ -285,7 +296,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
-		log.Printf("Token not valid: %v", err)
+		handlerLogger.ErrorContext(r.Context(), "sessionId something err:", "error", err)
 		return
 	}
 
@@ -293,7 +304,8 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Internal error"})
+		json.NewEncoder(w).Encode(map[string]string{"error": "Internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "access token generation failed", "error", err)
 		return
 	}
 
@@ -302,6 +314,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Internal error"})
+		handlerLogger.ErrorContext(r.Context(), "refresh token generation failed", "error", err)
 		return
 	}
 
@@ -311,6 +324,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Server error"})
+		handlerLogger.ErrorContext(r.Context(), "refresh function: replace tokens function", "error", err)
 		return
 	}
 
@@ -340,6 +354,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -352,6 +367,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Verification failed"})
+		handlerLogger.ErrorContext(r.Context(), "verify email", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -379,6 +395,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.SendForgotPasswordMail(r.Context(), userRequest.Email); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "cant send email, cuz I dont want to", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -386,6 +403,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -397,6 +415,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "password reset failed"})
+		handlerLogger.ErrorContext(r.Context(), "verifing email failed", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -404,17 +423,20 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	cookie, _ := r.Cookie("access_token")
 	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "some err in get by acces token:", "error", err)
 		return
 	}
 	user, err := h.service.GetUserByUserID(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "get user by user id", "error", err)
 		return
 	}
 
@@ -439,11 +461,13 @@ func (h *Handler) ValidateAccessToken(ctx context.Context, accessToken string) (
 }
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	shortCode := r.PathValue("slug")
 	longURL, err := h.service.GetLongURL(r.Context(), shortCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "get long url", "error", err)
 		return
 	}
 	h.service.URLClicked(r.Context(), shortCode)
@@ -451,17 +475,20 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	cookie, _ := r.Cookie("access_token")
 	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "cookie shit", "error", err)
 		return
 	}
 
 	var longURL domain.LongURL
 	if err := json.NewDecoder(r.Body).Decode(&longURL); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid request body", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
 			return
 		}
@@ -469,6 +496,7 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 	}
 	if longURL.LongURL == "" {
 		w.WriteHeader(http.StatusBadRequest)
+		handlerLogger.ErrorContext(r.Context(), "invalid request body", "error", err)
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
 			return
 		}
@@ -479,6 +507,7 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "insert url stuff", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -486,17 +515,20 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	cookie, _ := r.Cookie("access_token")
 	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "get by access token", "error", err)
 		return
 	}
 	urls, err := h.service.GetURLByUserID(r.Context(), userID)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "get url by user id", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -507,25 +539,30 @@ func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	shortCode := r.PathValue("slug")
 	urls, err := h.service.GetURLByShortCode(r.Context(), shortCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
+		handlerLogger.ErrorContext(r.Context(), "get url by short code", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(urls); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "get url by short code", "error", err)
 		return
 	}
 }
 
 func (h *Handler) DeleteURL(w http.ResponseWriter, r *http.Request) {
+	handlerLogger := h.log.With("component", "handler")
 	shortCode := r.PathValue("slug")
 	err := h.service.DeleteURLByShortCode(r.Context(), shortCode)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.ErrorContext(r.Context(), "delete url by short code", "error", err)
 		json.NewEncoder(w).Encode(map[string]string{"error": "internal server error"})
 		return
 	}
