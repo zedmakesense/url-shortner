@@ -1,0 +1,14 @@
+env_files = ["../.env"]
+build_dir = "build"
+
+[build]
+  entrypoint = ["./build/main"]
+  bin = "./build/main"
+  cmd = "go build -o ./build/main ./cmd/server"
+  delay = 1000
+  exclude_dir = ["migrations"]
+  exclude_file = ["Dockerfile"]
+  exclude_regex = ["_test.go"]
+
+#[misc]
+#  startup_banner = ""

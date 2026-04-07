@@ -140,7 +140,7 @@ func NewLogConfig() *Config {
 
 func (c *Config) LoadDBConfig() error {
 	var err error
-	c.DB.Host = getEnv("DB_HOST", "localhost")
+	c.DB.Host = getEnv("DB_HOST_GO", "postgres")
 	if c.DB.Port, err = parseInt(getEnv("DB_PORT", "5433")); err != nil {
 		return err
 	}
