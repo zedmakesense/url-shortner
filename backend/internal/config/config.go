@@ -111,7 +111,7 @@ func (c *Config) LoadRedisConfig() error {
 	if c.Redis.DB, err = parseInt(getEnv("REDIS_DB", "0")); err != nil {
 		return err
 	}
-	c.Redis.Host = getEnv("REDIS_HOST", "localhost")
+	c.Redis.Host = getEnv("REDIS_HOST_GO", "redis")
 	if _, err = parseInt(getEnv("REDIS_PORT", "6379")); err != nil {
 		return err
 	}
