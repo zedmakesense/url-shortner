@@ -27,7 +27,17 @@ func NewRepository(db *pgxpool.Pool, rdb *redis.Client, log *slog.Logger) *repos
 	}
 }
 
+func (r *repositoryStruct) logSlowQueries(ctx context.Context, op string, start time.Time) {
+	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
+		r.log.WarnContext(ctx, "slow query",
+			"operation", op,
+			"duration_ms", elapsed.Milliseconds(),
+		)
+	}
+}
+
 func (r *repositoryStruct) InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error) {
+	start := time.Now()
 	const query = `
 		INSERT INTO users (email, name, password_hash)
 		VALUES ($1, $2, $3)
@@ -43,10 +53,12 @@ func (r *repositoryStruct) InsertUser(ctx context.Context, email string, name st
 		}
 		return 0, err
 	}
+	r.logSlowQueries(ctx, "InsertUser", start)
 	return userID, nil
 }
 
 func (r *repositoryStruct) InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+	start := time.Now()
 	query := `
 		INSERT INTO sessions (user_id, access_token_hash, refresh_token_hash, access_expires_at, refresh_expires_at)
 		VALUES ($1, $2, $3, $4, $5);
@@ -56,10 +68,12 @@ func (r *repositoryStruct) InsertSession(ctx context.Context, userID int, access
 		return err
 	}
 
+	r.logSlowQueries(ctx, "InsertSession", start)
 	return nil
 }
 
 func (r *repositoryStruct) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
+	start := time.Now()
 	query := `
 		SELECT * FROM users
 		WHERE email=$1;
@@ -72,10 +86,12 @@ func (r *repositoryStruct) GetUserByEmail(ctx context.Context, email string) (do
 		}
 		return domain.User{}, err
 	}
+	r.logSlowQueries(ctx, "GetUserByEmail", start)
 	return user, nil
 }
 
 func (r *repositoryStruct) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
+	start := time.Now()
 	query := `
 		SELECT * FROM users
 		WHERE user_id = $1;
@@ -88,10 +104,12 @@ func (r *repositoryStruct) GetUserByUserID(ctx context.Context, userID int) (dom
 		}
 		return domain.User{}, err
 	}
+	r.logSlowQueries(ctx, "GetUserByUserID", start)
 	return user, nil
 }
 
 func (r *repositoryStruct) RevokeAllTokens(ctx context.Context, userId int, sessionId int) error {
+	start := time.Now()
 	query := `
 		UPDATE sessions SET revoked_at = $1
 		WHERE user_id=$2 AND session_id != $3;
@@ -102,10 +120,12 @@ func (r *repositoryStruct) RevokeAllTokens(ctx context.Context, userId int, sess
 		return err
 	}
 
+	r.logSlowQueries(ctx, "RevokeAllTokens", start)
 	return nil
 }
 
 func (r *repositoryStruct) RevokeToken(ctx context.Context, sessionId int) error {
+	start := time.Now()
 	query := `
 		UPDATE sessions SET revoked_at = $1
 		WHERE session_id=$2;
@@ -120,10 +140,12 @@ func (r *repositoryStruct) RevokeToken(ctx context.Context, sessionId int) error
 		return domain.ErrTokenNotFound
 	}
 
+	r.logSlowQueries(ctx, "RevokeToken", start)
 	return nil
 }
 
 func (r *repositoryStruct) GetByAccessToken(ctx context.Context, accessToken []byte) (domain.Token, error) {
+	start := time.Now()
 	query := `
 		SELECT session_id, user_id, access_token_hash, access_expires_at, revoked_at FROM sessions
 		WHERE access_token_hash = $1
@@ -139,9 +161,12 @@ func (r *repositoryStruct) GetByAccessToken(ctx context.Context, accessToken []b
 		return domain.Token{}, err
 	}
 
+	r.logSlowQueries(ctx, "GetByAccessToken", start)
 	return token, nil
 }
+
 func (r *repositoryStruct) GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error) {
+	start := time.Now()
 	query := `
 		SELECT session_id, user_id, refresh_token_hash, refresh_expires_at, revoked_at FROM sessions
 		WHERE refresh_token_hash = $1;
@@ -157,10 +182,12 @@ func (r *repositoryStruct) GetByRefreshToken(ctx context.Context, refreshToken [
 		return domain.Token{}, err
 	}
 
+	r.logSlowQueries(ctx, "GetByRefreshToken", start)
 	return token, nil
 }
 
 func (r *repositoryStruct) ReplaceTokens(ctx context.Context, accessTokenHash []byte, refreshTokenHash []byte, sessionId int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+	start := time.Now()
 	query := `
 		UPDATE sessions
 		SET access_token_hash = $1, refresh_token_hash = $2, access_expires_at = $3, refresh_expires_at = $4
@@ -172,10 +199,12 @@ func (r *repositoryStruct) ReplaceTokens(ctx context.Context, accessTokenHash []
 		return err
 	}
 
+	r.logSlowQueries(ctx, "ReplaceTokens", start)
 	return nil
 }
 
 func (r *repositoryStruct) GetEmailTableByID(ctx context.Context, userID int) (domain.EmailToken, error) {
+	start := time.Now()
 	query := `
 		SELECT * FROM email_table
 		WHERE user_id = $1
@@ -189,10 +218,12 @@ func (r *repositoryStruct) GetEmailTableByID(ctx context.Context, userID int) (d
 		return domain.EmailToken{}, err
 	}
 
+	r.logSlowQueries(ctx, "GetEmailTableByID", start)
 	return token, nil
 }
 
 func (r *repositoryStruct) GetEmailTableByToken(ctx context.Context, hashedToken []byte) (domain.EmailToken, error) {
+	start := time.Now()
 	query := `
 		SELECT * FROM email_table
 		WHERE token_hash = $1
@@ -208,9 +239,12 @@ func (r *repositoryStruct) GetEmailTableByToken(ctx context.Context, hashedToken
 		return domain.EmailToken{}, err
 	}
 
+	r.logSlowQueries(ctx, "GetEmailTableByToken", start)
 	return token, nil
 }
+
 func (r *repositoryStruct) RevokeEmailTokens(ctx context.Context, userID int) error {
+	start := time.Now()
 	query := `
 		UPDATE email_table
 		SET used_at = $1
@@ -221,10 +255,12 @@ func (r *repositoryStruct) RevokeEmailTokens(ctx context.Context, userID int) er
 		return err
 	}
 
+	r.logSlowQueries(ctx, "RevokeEmailTokens", start)
 	return nil
 }
 
 func (r *repositoryStruct) InsertEmailToken(ctx context.Context, userID int, HashedToken []byte, expiresAt time.Time) error {
+	start := time.Now()
 	query := `
 	INSERT INTO email_table (user_id, token_hash, expires_at)
 	VALUES ($1, $2, $3)
@@ -237,10 +273,12 @@ func (r *repositoryStruct) InsertEmailToken(ctx context.Context, userID int, Has
 		}
 		return err
 	}
+	r.logSlowQueries(ctx, "InsertEmailToken", start)
 	return nil
 }
 
 func (r *repositoryStruct) MarkUserVerified(ctx context.Context, userID int) error {
+	start := time.Now()
 	query := `
 		UPDATE users
 		SET is_email_verified = $1
@@ -251,10 +289,12 @@ func (r *repositoryStruct) MarkUserVerified(ctx context.Context, userID int) err
 		return err
 	}
 
+	r.logSlowQueries(ctx, "MarkUserVerified", start)
 	return nil
 }
 
 func (r *repositoryStruct) ChangePasswordAndRevoke(ctx context.Context, userID int, hashedPassword string, sessionID int) error {
+	start := time.Now()
 	query1 := `
 		UPDATE users
 		SET password_hash = $1
@@ -282,10 +322,12 @@ func (r *repositoryStruct) ChangePasswordAndRevoke(ctx context.Context, userID i
 		return err
 	}
 
+	r.logSlowQueries(ctx, "ChangePasswordAndRevoke", start)
 	return tx.Commit(ctx)
 }
 
 func (r *repositoryStruct) GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error) {
+	start := time.Now()
 	query := `
 		SELECT * FROM urls
 		WHERE short_code = $1
@@ -298,10 +340,12 @@ func (r *repositoryStruct) GetURLByShortCode(ctx context.Context, shortCode stri
 		}
 		return domain.URL{}, err
 	}
+	r.logSlowQueries(ctx, "GetURLByShortCode", start)
 	return url, nil
 }
 
 func (r *repositoryStruct) GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error) {
+	start := time.Now()
 	query := `
 		SELECT * FROM urls
 		WHERE user_id = $1
@@ -332,10 +376,12 @@ func (r *repositoryStruct) GetURLByUserID(ctx context.Context, userID int) ([]do
 		return nil, err
 	}
 
+	r.logSlowQueries(ctx, "GetURLByUserID", start)
 	return urls, nil
 }
 
 func (r *repositoryStruct) InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error {
+	start := time.Now()
 	query := `
 		INSERT INTO urls (short_code, long_url, user_id, created_at)
 		VALUES($1, $2, $3, $4)
@@ -348,10 +394,12 @@ func (r *repositoryStruct) InsertURL(ctx context.Context, shortCode string, long
 		}
 		return err
 	}
+	r.logSlowQueries(ctx, "InsertURL", start)
 	return nil
 }
 
 func (r *repositoryStruct) URLClicked(ctx context.Context, shortCode string) error {
+	start := time.Now()
 	query := `
 		UPDATE urls
 		SET click_count = click_count + 1
@@ -366,10 +414,12 @@ func (r *repositoryStruct) URLClicked(ctx context.Context, shortCode string) err
 		}
 		return err
 	}
+	r.logSlowQueries(ctx, "URLClicked", start)
 	return nil
 }
 
 func (r *repositoryStruct) DeleteURLByShortCode(ctx context.Context, shortCode string) error {
+	start := time.Now()
 	query := `
 		DELETE FROM urls
 		WHERE short_code = $1
@@ -384,10 +434,12 @@ func (r *repositoryStruct) DeleteURLByShortCode(ctx context.Context, shortCode s
 		}
 		return err
 	}
+	r.logSlowQueries(ctx, "DeleteURLByShortCode", start)
 	return nil
 }
 
 func (r *repositoryStruct) DeleteUser(ctx context.Context, userID int) error {
+	start := time.Now()
 	query := `
 		DELETE FROM users
 		WHERE user_id = $1
@@ -401,5 +453,6 @@ func (r *repositoryStruct) DeleteUser(ctx context.Context, userID int) error {
 		}
 		return err
 	}
+	r.logSlowQueries(ctx, "DeleteUser", start)
 	return nil
 }
