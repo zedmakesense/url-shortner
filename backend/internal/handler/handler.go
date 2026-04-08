@@ -404,6 +404,21 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "missing token"}); encErr != nil {
+			return
+		}
+		return
+	}
+	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "password reset failed"})
+		handlerLogger.ErrorContext(r.Context(), "verifing email failed", "error", err)
+		return
+	}
+
 	var user domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		w.Header().Set("Content-Type", "application/json")
