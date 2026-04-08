@@ -54,7 +54,7 @@ func Auth(h *handler.Handler) func(http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
 				_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
-				slog.ErrorContext(r.Context(), "Token not found in cookie: ", err)
+				slog.WarnContext(r.Context(), "Token not found in cookie:", "error", err)
 				return
 			}
 
@@ -63,7 +63,7 @@ func Auth(h *handler.Handler) func(http.Handler) http.Handler {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(http.StatusUnauthorized)
 				_ = json.NewEncoder(w).Encode(map[string]string{"error": "unauthorized"})
-				slog.ErrorContext(r.Context(), "Token not valid: %v", err)
+				slog.WarnContext(r.Context(), "Token not valid:", "error", err)
 				return
 			}
 
