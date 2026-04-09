@@ -37,27 +37,24 @@ type LogConfig struct {
 }
 
 type ResendConfig struct {
-	// gosec G117
-	APIKey string
+	APIKey string // #nosec G117
 }
 
 type RedisConfig struct {
-	DB   int
-	Host string
-	Port string
-	// gosec G117
-	Password     string
+	DB           int
+	Host         string
+	Port         string
+	Password     string // #nosec G117
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 }
 
 type DBConfig struct {
-	Host string
-	Port int
-	User string
-	// gosec G117
-	Password        string
+	Host            string
+	Port            int
+	User            string
+	Password        string // #nosec G117
 	Name            string
 	MaxOpenConns    int
 	MaxIdleConns    int
