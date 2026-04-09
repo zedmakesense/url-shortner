@@ -5,7 +5,7 @@ MIGRATE_DSN = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NA
 
 .PHONY: dev-up dev-down dev-down-force dev-logs dev-migrate-up dev-migrate-down dev-migrate-version \
 	prod-up prod-down prod-down-force prod-logs prod-migrate-up prod-migrate-down prod-migrate-version \
-	help run
+	help run lint
 
 .DEFAULT_GOAL := help
 
@@ -13,9 +13,10 @@ dev-up:
 	docker compose -f dev-compose.yml up --build -d
 
 run:
-	cd backend
-	air
-	cd ..
+	cd backend && air
+
+lint:
+	cd backend && golangci-lint run ./...
 
 dev-down:
 	docker compose -f dev-compose.yml down
