@@ -168,7 +168,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID, err := h.service.Login(r.Context(), userRequest.Email, userRequest.Password)
-
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDoesNotExist) {
 			w.WriteHeader(http.StatusConflict)

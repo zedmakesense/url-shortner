@@ -115,7 +115,6 @@ func (r *Repository) RevokeAllTokens(ctx context.Context, userID int, sessionID 
 		WHERE user_id=$2 AND session_id != $3;
 	`
 	_, err := r.db.Exec(ctx, query, time.Now(), userID, sessionID)
-
 	if err != nil {
 		return err
 	}
@@ -131,7 +130,6 @@ func (r *Repository) RevokeToken(ctx context.Context, sessionID int) error {
 		WHERE session_id=$2;
 	`
 	cmdTag, err := r.db.Exec(ctx, query, time.Now(), sessionID)
-
 	if err != nil {
 		return err
 	}
@@ -413,7 +411,6 @@ func (r *Repository) URLClicked(ctx context.Context, shortCode string) error {
 		WHERE short_code = $1;
 	`
 	rows, err := r.db.Query(ctx, query, shortCode)
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -434,7 +431,6 @@ func (r *Repository) DeleteURLByShortCode(ctx context.Context, shortCode string)
 	`
 
 	rows, err := r.db.Query(ctx, query, shortCode)
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -454,7 +450,6 @@ func (r *Repository) DeleteUser(ctx context.Context, userID int) error {
 		WHERE user_id = $1
 	`
 	rows, err := r.db.Query(ctx, query, userID)
-
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
