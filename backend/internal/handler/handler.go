@@ -6,12 +6,12 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/resend/resend-go/v3"
 	"github.com/zedmakesense/url-shortner/internal/domain"
 	"github.com/zedmakesense/url-shortner/internal/service"
-	"github.com/zedmakesense/url-shortner/internal/utils"
 )
 
 type Handler struct {
@@ -33,6 +33,11 @@ func NewHandler(service service.Service, log *slog.Logger, mail *resend.Client) 
 		log:     log,
 		mail:    mail,
 	}
+}
+
+func isValidEmail(email string) bool {
+	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	return emailRegex.MatchString(email)
 }
 
 func (h *Handler) GenerateToken(w http.ResponseWriter, r *http.Request) string {
@@ -69,7 +74,7 @@ func (h *Handler) parseRegister(w http.ResponseWriter, r *http.Request) (string,
 		}
 		return "", "", ""
 	}
-	if !utils.IsValidEmail(userRequest.Email) {
+	if !isValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid email in Register")
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
@@ -169,7 +174,7 @@ func (h *Handler) parseLogin(w http.ResponseWriter, r *http.Request) (string, st
 		}
 		return "", ""
 	}
-	if !utils.IsValidEmail(userRequest.Email) {
+	if !isValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid email in Register")
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
@@ -389,7 +394,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	if !utils.IsValidEmail(userRequest.Email) {
+	if !isValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid email in Register")
 		if encErr := json.NewEncoder(w).Encode(domain.ErrorResponse{Error: "invalid request body"}); encErr != nil {
