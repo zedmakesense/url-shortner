@@ -42,9 +42,10 @@ type ResendConfig struct {
 }
 
 type RedisConfig struct {
-	DB           int
-	Host         string
-	Port         string
+	DB   int
+	Host string
+	Port string
+	// gosec G117
 	Password     string
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration
