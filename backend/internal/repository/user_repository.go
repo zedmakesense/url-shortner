@@ -57,7 +57,14 @@ func (r *Repository) InsertUser(ctx context.Context, email string, name string, 
 	return userID, nil
 }
 
-func (r *Repository) InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+func (r *Repository) InsertSession(
+	ctx context.Context,
+	userID int,
+	accessTokenHash []byte,
+	refreshTokenHash []byte,
+	accessExpiresAt time.Time,
+	refreshExpiresAt time.Time,
+) error {
 	start := time.Now()
 	query := `
 		INSERT INTO sessions (user_id, access_token_hash, refresh_token_hash, access_expires_at, refresh_expires_at)
@@ -79,7 +86,10 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.U
 		WHERE email=$1;
 	`
 	var user domain.User
-	err := r.db.QueryRow(ctx, query, email).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		email).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, domain.ErrUserDoesNotExist
@@ -97,7 +107,10 @@ func (r *Repository) GetUserByUserID(ctx context.Context, userID int) (domain.Us
 		WHERE user_id = $1;
 	`
 	var user domain.User
-	err := r.db.QueryRow(ctx, query, userID).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		userID).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, domain.ErrUserDoesNotExist
@@ -151,7 +164,10 @@ func (r *Repository) GetByAccessToken(ctx context.Context, accessToken []byte) (
 
 	var token domain.Token
 
-	err := r.db.QueryRow(ctx, query, accessToken).Scan(&token.SessionID, &token.UserID, &token.Token, &token.ExpiresAt, &token.RevokedAt)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		accessToken).Scan(&token.SessionID, &token.UserID, &token.Token, &token.ExpiresAt, &token.RevokedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Token{}, domain.ErrTokenNotFound
@@ -172,7 +188,15 @@ func (r *Repository) GetByRefreshToken(ctx context.Context, refreshToken []byte)
 
 	var token domain.Token
 
-	err := r.db.QueryRow(ctx, query, refreshToken).Scan(&token.SessionID, &token.UserID, &token.Token, &token.ExpiresAt, &token.RevokedAt)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		refreshToken).Scan(
+		&token.SessionID,
+		&token.UserID,
+		&token.Token,
+		&token.ExpiresAt,
+		&token.RevokedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Token{}, domain.ErrTokenNotFound
@@ -184,7 +208,13 @@ func (r *Repository) GetByRefreshToken(ctx context.Context, refreshToken []byte)
 	return token, nil
 }
 
-func (r *Repository) ReplaceTokens(ctx context.Context, accessTokenHash []byte, refreshTokenHash []byte, sessionID int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
+func (r *Repository) ReplaceTokens(
+	ctx context.Context,
+	accessTokenHash []byte,
+	refreshTokenHash []byte,
+	sessionID int,
+	accessExpiresAt time.Time,
+	refreshExpiresAt time.Time) error {
 	start := time.Now()
 	query := `
 		UPDATE sessions
@@ -208,7 +238,16 @@ func (r *Repository) GetEmailTableByID(ctx context.Context, userID int) (domain.
 		WHERE user_id = $1
 	`
 	var token domain.EmailToken
-	err := r.db.QueryRow(ctx, query, userID).Scan(&token.ID, &token.UserID, &token.HashedToken, &token.ExpiresAt, &token.UsedAt, &token.CreatedAt)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		userID).Scan(
+		&token.ID,
+		&token.UserID,
+		&token.HashedToken,
+		&token.ExpiresAt,
+		&token.UsedAt,
+		&token.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.EmailToken{}, domain.ErrTokenNotFound
@@ -229,7 +268,16 @@ func (r *Repository) GetEmailTableByToken(ctx context.Context, hashedToken []byt
 	 		AND expires_at > NOW()
 	`
 	var token domain.EmailToken
-	err := r.db.QueryRow(ctx, query, hashedToken).Scan(&token.ID, &token.UserID, &token.HashedToken, &token.ExpiresAt, &token.UsedAt, &token.CreatedAt)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		hashedToken).Scan(
+		&token.ID,
+		&token.UserID,
+		&token.HashedToken,
+		&token.ExpiresAt,
+		&token.UsedAt,
+		&token.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.EmailToken{}, domain.ErrTokenNotFound
@@ -292,7 +340,11 @@ func (r *Repository) MarkUserVerified(ctx context.Context, userID int) error {
 	return nil
 }
 
-func (r *Repository) ChangePasswordAndRevoke(ctx context.Context, userID int, hashedPassword string, sessionID int) error {
+func (r *Repository) ChangePasswordAndRevoke(
+	ctx context.Context,
+	userID int,
+	hashedPassword string,
+	sessionID int) error {
 	start := time.Now()
 	query1 := `
 		UPDATE users
@@ -337,7 +389,17 @@ func (r *Repository) GetURLByShortCode(ctx context.Context, shortCode string) (d
 		WHERE short_code = $1
 	`
 	var url domain.URL
-	err := r.db.QueryRow(ctx, query, shortCode).Scan(&url.ID, &url.ShortCode, &url.LongURL, &url.UserID, &url.CreatedAt, &url.ExpiresAt, &url.ClickCount)
+	err := r.db.QueryRow(
+		ctx,
+		query,
+		shortCode).Scan(
+		&url.ID,
+		&url.ShortCode,
+		&url.LongURL,
+		&url.UserID,
+		&url.CreatedAt,
+		&url.ExpiresAt,
+		&url.ClickCount)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.URL{}, domain.ErrTokenNotFound
@@ -384,7 +446,12 @@ func (r *Repository) GetURLByUserID(ctx context.Context, userID int) ([]domain.U
 	return urls, nil
 }
 
-func (r *Repository) InsertURL(ctx context.Context, shortCode string, longURL string, userID int, createdAt time.Time) error {
+func (r *Repository) InsertURL(
+	ctx context.Context,
+	shortCode string,
+	longURL string,
+	userID int,
+	createdAt time.Time) error {
 	start := time.Now()
 	query := `
 		INSERT INTO urls (short_code, long_url, user_id, created_at)

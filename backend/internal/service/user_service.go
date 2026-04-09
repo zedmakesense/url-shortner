@@ -17,13 +17,25 @@ import (
 
 type RepositoryInterface interface {
 	InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error)
-	InsertSession(ctx context.Context, userID int, accessTokenHash []byte, refreshTokenHash []byte, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	InsertSession(
+		ctx context.Context,
+		userID int,
+		accessTokenHash []byte,
+		refreshTokenHash []byte,
+		accessExpiresAt time.Time,
+		refreshExpiresAt time.Time) error
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByUserID(ctx context.Context, userID int) (domain.User, error)
 	RevokeToken(ctx context.Context, sessionID int) error
 	GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error)
 	GetByAccessToken(ctx context.Context, accessToken []byte) (domain.Token, error)
-	ReplaceTokens(ctx context.Context, accessTokenHash []byte, refreshTokenHash []byte, sessionID int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	ReplaceTokens(
+		ctx context.Context,
+		accessTokenHash []byte,
+		refreshTokenHash []byte,
+		sessionID int,
+		accessExpiresAt time.Time,
+		refreshExpiresAt time.Time) error
 	GetEmailTableByID(ctx context.Context, userID int) (domain.EmailToken, error)
 	GetEmailTableByToken(ctx context.Context, hashedToken []byte) (domain.EmailToken, error)
 	RevokeEmailTokens(ctx context.Context, userID int) error
@@ -40,11 +52,23 @@ type RepositoryInterface interface {
 
 type Service interface {
 	Register(ctx context.Context, email string, name string, password string) (int, error)
-	StoreTokens(ctx context.Context, userID int, accessToken string, refreshToken string, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	StoreTokens(
+		ctx context.Context,
+		userID int,
+		accessToken string,
+		refreshToken string,
+		accessExpiresAt time.Time,
+		refreshExpiresAt time.Time) error
 	GenerateToken() (string, error)
 	Login(ctx context.Context, email string, password string) (int, error)
 	RevokeToken(ctx context.Context, refreshToken string) error
-	ReplaceTokens(ctx context.Context, accessToken string, refreshToken string, userID int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	ReplaceTokens(
+		ctx context.Context,
+		accessToken string,
+		refreshToken string,
+		userID int,
+		accessExpiresAt time.Time,
+		refreshExpiresAt time.Time) error
 	GetByRefreshToken(ctx context.Context, refreshToken string) (int, error)
 	GetByAccessToken(ctx context.Context, accessToken string) (int, int, error)
 	GetUserByUserID(ctx context.Context, userID int) (domain.User, error)
@@ -112,8 +136,20 @@ func (s *serviceStruct) GenerateToken() (string, error) {
 	return base64.RawStdEncoding.EncodeToString(b), nil
 }
 
-func (s *serviceStruct) StoreTokens(ctx context.Context, userID int, accessToken string, refreshToken string, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
-	return s.repo.InsertSession(ctx, userID, hashToken(accessToken), hashToken(refreshToken), accessExpiresAt, refreshExpiresAt)
+func (s *serviceStruct) StoreTokens(
+	ctx context.Context,
+	userID int,
+	accessToken string,
+	refreshToken string,
+	accessExpiresAt time.Time,
+	refreshExpiresAt time.Time) error {
+	return s.repo.InsertSession(
+		ctx,
+		userID,
+		hashToken(accessToken),
+		hashToken(refreshToken),
+		accessExpiresAt,
+		refreshExpiresAt)
 }
 
 func (s *serviceStruct) Login(ctx context.Context, email string, password string) (int, error) {
@@ -140,8 +176,18 @@ func (s *serviceStruct) RevokeToken(ctx context.Context, refreshToken string) er
 	return s.repo.RevokeToken(ctx, token.SessionID)
 }
 
-func (s *serviceStruct) ReplaceTokens(ctx context.Context, accessToken string, refreshToken string, userID int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error {
-	return s.repo.ReplaceTokens(ctx, hashToken(accessToken), hashToken(refreshToken), userID, accessExpiresAt, refreshExpiresAt)
+func (s *serviceStruct) ReplaceTokens(
+	ctx context.Context,
+	accessToken string,
+	refreshToken string,
+	userID int,
+	accessExpiresAt time.Time,
+	refreshExpiresAt time.Time) error {
+	return s.repo.ReplaceTokens(
+		ctx,
+		hashToken(accessToken),
+		hashToken(refreshToken),
+		userID, accessExpiresAt, refreshExpiresAt)
 }
 
 func (s *serviceStruct) GetByAccessToken(ctx context.Context, accessToken string) (int, int, error) {
@@ -202,7 +248,11 @@ func (s *serviceStruct) SendEmail(ctx context.Context, email string, userID int,
 		return err
 	}
 	hashedToken := hashToken(token)
-	if err = s.repo.InsertEmailToken(ctx, userID, hashedToken, time.Now().Add(time.Duration(expiresAt)*time.Hour)); err != nil {
+	if err = s.repo.InsertEmailToken(
+		ctx,
+		userID,
+		hashedToken,
+		time.Now().Add(time.Duration(expiresAt)*time.Hour)); err != nil {
 		return err
 	}
 
