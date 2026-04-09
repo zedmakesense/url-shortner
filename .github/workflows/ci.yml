@@ -67,12 +67,6 @@ jobs:
         REDIS_HOST: localhost
         REDIS_PORT: 6379
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        files: ./coverage.out
-        fail_ci_if_error: false
-
     - name: Run vet
       run: go vet ./...
 
