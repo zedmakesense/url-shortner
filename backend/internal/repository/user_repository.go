@@ -214,7 +214,8 @@ func (r *Repository) ReplaceTokens(
 	refreshTokenHash []byte,
 	sessionID int,
 	accessExpiresAt time.Time,
-	refreshExpiresAt time.Time) error {
+	refreshExpiresAt time.Time,
+) error {
 	start := time.Now()
 	query := `
 		UPDATE sessions
@@ -344,7 +345,8 @@ func (r *Repository) ChangePasswordAndRevoke(
 	ctx context.Context,
 	userID int,
 	hashedPassword string,
-	sessionID int) error {
+	sessionID int,
+) error {
 	start := time.Now()
 	query1 := `
 		UPDATE users
@@ -451,7 +453,8 @@ func (r *Repository) InsertURL(
 	shortCode string,
 	longURL string,
 	userID int,
-	createdAt time.Time) error {
+	createdAt time.Time,
+) error {
 	start := time.Now()
 	query := `
 		INSERT INTO urls (short_code, long_url, user_id, created_at)

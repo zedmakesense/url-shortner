@@ -142,7 +142,8 @@ func (s *serviceStruct) StoreTokens(
 	accessToken string,
 	refreshToken string,
 	accessExpiresAt time.Time,
-	refreshExpiresAt time.Time) error {
+	refreshExpiresAt time.Time,
+) error {
 	return s.repo.InsertSession(
 		ctx,
 		userID,
@@ -182,7 +183,8 @@ func (s *serviceStruct) ReplaceTokens(
 	refreshToken string,
 	userID int,
 	accessExpiresAt time.Time,
-	refreshExpiresAt time.Time) error {
+	refreshExpiresAt time.Time,
+) error {
 	return s.repo.ReplaceTokens(
 		ctx,
 		hashToken(accessToken),
