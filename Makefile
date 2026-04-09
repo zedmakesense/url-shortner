@@ -5,18 +5,20 @@ MIGRATE_DSN = postgres://$(DB_USER):$(DB_PASSWORD)@$(DB_HOST):$(DB_PORT)/$(DB_NA
 
 .PHONY: dev-up dev-down dev-down-force dev-logs dev-migrate-up dev-migrate-down dev-migrate-version \
 	prod-up prod-down prod-down-force prod-logs prod-migrate-up prod-migrate-down prod-migrate-version \
-	help run lint
-
+	help run-backend lint-backend format-backend
 .DEFAULT_GOAL := help
 
 dev-up:
 	docker compose -f dev-compose.yml up --build -d
 
-run:
+run-backend:
 	cd backend && air
 
-lint:
+lint-backend:
 	cd backend && golangci-lint run ./...
+
+format-backend:
+	gofumpt -l -w ./backend
 
 dev-down:
 	docker compose -f dev-compose.yml down
@@ -60,7 +62,9 @@ prod-migrate-version:
 help:
 	@echo "=== Dev Environment ==="
 	@echo "  make dev-up               - Start dev containers (builds if needed)"
-	@echo "  make run                  - Start the go api server"
+	@echo "  make run-backend          - Start the go api server"
+	@echo "  make lint-backend         - Lint go backend"
+	@echo "  make format-backend       - Format go backend"
 	@echo "  make dev-down             - Stop dev containers"
 	@echo "  make dev-down-force       - Stop dev containers and remove volumes"
 	@echo "  make dev-logs             - Stream dev container logs"
