@@ -39,11 +39,11 @@ func NewRouter(service service.Service, log *slog.Logger, mail *resend.Client) h
 	mux.HandleFunc("POST /api/v1/auth/verify-email", h.VerifyEmail)
 	mux.HandleFunc("POST /api/v1/auth/forgot-password", h.ForgotPassword)
 	mux.HandleFunc("POST /api/v1/auth/reset-password", h.ResetPassword)
+	mux.HandleFunc("GET /{slug}", h.Redirect)
 
 	auth := Auth(h)
 	mux.Handle("GET /api/v1/auth/me", auth(http.HandlerFunc(h.Me)))
 	mux.Handle("DELETE /api/v1/auth/me", auth(http.HandlerFunc(h.Me)))
-	mux.Handle("GET /{slug}", auth(http.HandlerFunc(h.Redirect)))
 	mux.Handle("POST /api/v1/urls", auth(http.HandlerFunc(h.InsertURL)))
 	mux.Handle("GET /api/v1/urls", auth(http.HandlerFunc(h.GetURLs)))
 	mux.Handle("GET /api/v1/urls/{slug}", auth(http.HandlerFunc(h.GetURL)))
