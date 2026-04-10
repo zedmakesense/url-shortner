@@ -82,7 +82,7 @@ func (r *Repository) InsertSession(
 func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.User, error) {
 	start := time.Now()
 	query := `
-		SELECT user_id, email, name, password_hash, is_email_verified FROM users
+		SELECT user_id, email, name, password_hash, is_email_verified, created_at FROM users
 		WHERE email=$1;
 	`
 	var user domain.User
@@ -103,7 +103,7 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.U
 func (r *Repository) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
 	start := time.Now()
 	query := `
-		SELECT user_id, email, name, password_hash, is_email_verified FROM users
+		SELECT user_id, email, name, password_hash, is_email_verified, created_at FROM users
 		WHERE user_id = $1;
 	`
 	var user domain.User
