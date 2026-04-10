@@ -218,6 +218,9 @@ func (s *serviceStruct) ValidateAccessToken(ctx context.Context, accessToken str
 	if token.RevokedAt != nil {
 		return 0, 0, domain.ErrAccessTokenExpired
 	}
+	if token.ExpiresAt.Before(time.Now()) {
+		return 0, 0, domain.ErrAccessTokenExpired
+	}
 	return token.SessionID, token.UserID, nil
 }
 
