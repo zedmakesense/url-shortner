@@ -95,7 +95,12 @@ func (r *EmailRepository) RevokeEmailTokens(ctx context.Context, userID int) err
 	return nil
 }
 
-func (r *EmailRepository) InsertEmailToken(ctx context.Context, userID int, hashedToken []byte, expiresAt time.Time) error {
+func (r *EmailRepository) InsertEmailToken(
+	ctx context.Context,
+	userID int,
+	hashedToken []byte,
+	expiresAt time.Time,
+) error {
 	start := time.Now()
 	query := `
 	INSERT INTO email_table (user_id, token_hash, expires_at)

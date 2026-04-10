@@ -103,10 +103,24 @@ func (s *SessionService) GenerateToken() (string, error) {
 }
 
 type SessionServiceInterface interface {
-	StoreTokens(ctx context.Context, userID int, accessToken string, refreshToken string, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	StoreTokens(
+		ctx context.Context,
+		userID int,
+		accessToken string,
+		refreshToken string,
+		accessExpiresAt time.Time,
+		refreshExpiresAt time.Time,
+	) error
 	RevokeToken(ctx context.Context, refreshToken string) error
 	RevokeTokens(ctx context.Context, userID int, sessionID int) error
-	ReplaceTokens(ctx context.Context, accessToken string, refreshToken string, userID int, accessExpiresAt time.Time, refreshExpiresAt time.Time) error
+	ReplaceTokens(
+		ctx context.Context,
+		accessToken string,
+		refreshToken string,
+		userID int,
+		accessExpiresAt time.Time,
+		refreshExpiresAt time.Time,
+	) error
 	GetByAccessToken(ctx context.Context, accessToken string) (int, int, error)
 	GetByRefreshToken(ctx context.Context, refreshToken string) (int, int, error)
 	ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error)

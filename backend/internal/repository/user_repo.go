@@ -21,7 +21,12 @@ func NewUserRepository(db *pgxpool.Pool, log *slog.Logger) *UserRepository {
 	return &UserRepository{db: db, log: newSlowQueryLogger(log)}
 }
 
-func (r *UserRepository) InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error) {
+func (r *UserRepository) InsertUser(
+	ctx context.Context,
+	email string,
+	name string,
+	hashedPassword string,
+) (int, error) {
 	start := time.Now()
 	const query = `
 		INSERT INTO users (email, name, password_hash)

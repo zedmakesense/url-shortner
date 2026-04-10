@@ -19,7 +19,12 @@ type EmailService struct {
 	mail      *resend.Client
 }
 
-func NewEmailService(emailRepo *repository.EmailRepository, userRepo *repository.UserRepository, log *slog.Logger, mail *resend.Client) *EmailService {
+func NewEmailService(
+	emailRepo *repository.EmailRepository,
+	userRepo *repository.UserRepository,
+	log *slog.Logger,
+	mail *resend.Client,
+) *EmailService {
 	return &EmailService{
 		emailRepo: emailRepo,
 		userRepo:  userRepo,

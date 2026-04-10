@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/resend/resend-go/v3"
 	"github.com/rs/cors"
 	"github.com/zedmakesense/url-shortner/internal/handler"
 	"github.com/zedmakesense/url-shortner/internal/service"
@@ -26,12 +25,18 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func NewRouter(service service.Service, log *slog.Logger, mail *resend.Client) http.Handler {
+func NewRouter(
+	userSvc *service.UserService,
+	sessionSvc *service.SessionService,
+	emailSvc *service.EmailService,
+	urlSvc *service.URLService,
+	passwordSvc *service.PasswordService,
+	log *slog.Logger,
+) http.Handler {
 	mux := http.NewServeMux()
 
-	h := handler.NewHandler(service, log, mail)
+	h := handler.NewHandler(userSvc, sessionSvc, emailSvc, urlSvc, passwordSvc, log)
 
-	// creating user takes name, email and password
 	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)
 	mux.HandleFunc("POST /api/v1/auth/logout", h.Logout)
