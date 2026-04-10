@@ -316,7 +316,7 @@ func (r *Repository) InsertEmailToken(ctx context.Context, userID int, hashedTok
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return domain.ErrTableAlreadyExists
+			return domain.ErrEmailAlreadyExists
 		}
 		return err
 	}
