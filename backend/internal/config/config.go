@@ -129,13 +129,13 @@ func (c *Config) LoadRedisConfig() error {
 	if c.Redis.Password == "" {
 		return errors.New("no Redis password provided")
 	}
-	if c.Redis.DialTimeout, err = parseDuration(getEnv("REDIS_DIAL_TIMEOUT", "5")); err != nil {
+	if c.Redis.DialTimeout, err = parseDuration(getEnv("REDIS_DIAL_TIMEOUT", "5s")); err != nil {
 		return err
 	}
-	if c.Redis.ReadTimeout, err = parseDuration(getEnv("REDIS_READ_TIMEOUT", "3")); err != nil {
+	if c.Redis.ReadTimeout, err = parseDuration(getEnv("REDIS_READ_TIMEOUT", "3s")); err != nil {
 		return err
 	}
-	if c.Redis.WriteTimeout, err = parseDuration(getEnv("REDIS_WRITE_TIMEOUT", "3")); err != nil {
+	if c.Redis.WriteTimeout, err = parseDuration(getEnv("REDIS_WRITE_TIMEOUT", "3s")); err != nil {
 		return err
 	}
 	return nil
@@ -156,7 +156,7 @@ func (c *Config) LoadDBConfig() error {
 		return errors.New("password not provided for DB")
 	}
 	c.DB.Name = getEnv("DB_NAME", "")
-	if c.DB.Password == "" {
+	if c.DB.Name == "" {
 		return errors.New("db name not provided for DB")
 	}
 	if c.DB.MaxOpenConns, err = parseInt(getEnv("DB_MAX_OPEN_CONNS", "25")); err != nil {
