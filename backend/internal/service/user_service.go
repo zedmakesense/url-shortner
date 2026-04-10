@@ -27,6 +27,7 @@ type RepositoryInterface interface {
 	GetUserByEmail(ctx context.Context, email string) (domain.User, error)
 	GetUserByUserID(ctx context.Context, userID int) (domain.User, error)
 	RevokeToken(ctx context.Context, sessionID int) error
+	RevokeTokens(ctx context.Context, userID int, sessionID int) error
 	GetByRefreshToken(ctx context.Context, refreshToken []byte) (domain.Token, error)
 	GetByAccessToken(ctx context.Context, accessToken []byte) (domain.Token, error)
 	ReplaceTokens(
@@ -62,6 +63,7 @@ type Service interface {
 	GenerateToken() (string, error)
 	Login(ctx context.Context, email string, password string) (int, error)
 	RevokeToken(ctx context.Context, refreshToken string) error
+	RevokeTokens(ctx context.Context, userID int, sessionID int) error
 	ReplaceTokens(
 		ctx context.Context,
 		accessToken string,
@@ -69,7 +71,7 @@ type Service interface {
 		userID int,
 		accessExpiresAt time.Time,
 		refreshExpiresAt time.Time) error
-	GetByRefreshToken(ctx context.Context, refreshToken string) (int, error)
+	GetByRefreshToken(ctx context.Context, refreshToken string) (int, int, error)
 	GetByAccessToken(ctx context.Context, accessToken string) (int, int, error)
 	GetUserByUserID(ctx context.Context, userID int) (domain.User, error)
 	ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error)
@@ -177,6 +179,10 @@ func (s *serviceStruct) RevokeToken(ctx context.Context, refreshToken string) er
 	return s.repo.RevokeToken(ctx, token.SessionID)
 }
 
+func (s *serviceStruct) RevokeTokens(ctx context.Context, userID int, sessionID int) error {
+	return s.repo.RevokeTokens(ctx, userID, sessionID)
+}
+
 func (s *serviceStruct) ReplaceTokens(
 	ctx context.Context,
 	accessToken string,
@@ -215,15 +221,15 @@ func (s *serviceStruct) ValidateAccessToken(ctx context.Context, accessToken str
 	return token.SessionID, token.UserID, nil
 }
 
-func (s *serviceStruct) GetByRefreshToken(ctx context.Context, refreshToken string) (int, error) {
+func (s *serviceStruct) GetByRefreshToken(ctx context.Context, refreshToken string) (int, int, error) {
 	token, err := s.repo.GetByRefreshToken(ctx, hashToken(refreshToken))
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 	if token.RevokedAt != nil {
-		return 0, domain.ErrRefreshTokenExpired
+		return 0, 0, domain.ErrRefreshTokenExpired
 	}
-	return token.SessionID, nil
+	return token.SessionID, token.UserID, nil
 }
 
 func (s *serviceStruct) CheckEmail(ctx context.Context, userID int) error {

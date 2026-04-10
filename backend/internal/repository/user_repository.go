@@ -140,7 +140,7 @@ func (r *Repository) RevokeToken(ctx context.Context, sessionID int) error {
 	start := time.Now()
 	query := `
 		UPDATE sessions SET revoked_at = $1
-		WHERE session_id=$2;
+		WHERE session_id = $2;
 	`
 	cmdTag, err := r.db.Exec(ctx, query, time.Now(), sessionID)
 	if err != nil {
@@ -152,6 +152,26 @@ func (r *Repository) RevokeToken(ctx context.Context, sessionID int) error {
 	}
 
 	r.logSlowQueries(ctx, "RevokeToken", start)
+	return nil
+}
+
+func (r *Repository) RevokeTokens(ctx context.Context, userID int, sessionID int) error {
+	start := time.Now()
+	query := `
+		UPDATE sessions SET revoked_at = $1
+		WHERE user_id = $2
+		AND session_id != $3
+	`
+	cmdTag, err := r.db.Exec(ctx, query, time.Now(), userID, sessionID)
+	if err != nil {
+		return err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		return domain.ErrTokenNotFound
+	}
+
+	r.logSlowQueries(ctx, "RevokeTokens", start)
 	return nil
 }
 

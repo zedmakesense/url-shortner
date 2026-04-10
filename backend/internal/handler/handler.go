@@ -148,7 +148,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 		Secure:   secure,
 		SameSite: http.SameSiteLaxMode,
-		MaxAge:   AccessTokenCookieMaxAge,
+		MaxAge:   RefreshTokenCookieMaxAge,
 	}
 
 	http.SetCookie(w, accessCookie)
@@ -321,7 +321,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	refreshTokenOld := cookie.Value
-	sessionID, err := h.service.GetByRefreshToken(r.Context(), refreshTokenOld)
+	sessionID, userID, err := h.service.GetByRefreshToken(r.Context(), refreshTokenOld)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -338,11 +338,11 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	accessExpiresAt := time.Now().Add(AccessTokenDuration)
 	refreshExpiresAt := time.Now().Add(RefreshTokenDuration)
-	if err = h.service.ReplaceTokens(
+	if err = h.service.StoreTokens(
 		r.Context(),
+		userID,
 		accessToken,
 		refreshToken,
-		sessionID,
 		accessExpiresAt,
 		refreshExpiresAt); err != nil {
 		w.Header().Set("Content-Type", "application/json")
@@ -351,6 +351,16 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		handlerLogger.ErrorContext(r.Context(), "ReplaceTokens", "error", err)
+		return
+	}
+
+	if err := h.service.RevokeTokens(r.Context(), userID, sessionID); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "Server error"}); encErr != nil {
+			return
+		}
+		handlerLogger.ErrorContext(r.Context(), "RevokeToken", "error", err)
 		return
 	}
 
