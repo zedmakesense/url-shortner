@@ -49,7 +49,7 @@ backend/internal/
 │   └── password.go        # hashPassword, comparePassword, hashToken
 │
 ├── repository/        # Database operations (table-focused)
-│   ├── common.go         # Shared slowQueryLogger
+│   ├── slowQueryLogger.go # Shared slowQueryLogger
 │   ├── user_repo.go      # users table CRUD
 │   ├── session_repo.go    # sessions table CRUD
 │   ├── email_repo.go      # email_table CRUD
@@ -71,14 +71,7 @@ backend/internal/
 Maps HTTP endpoints to handler functions.
 
 ```go
-func NewRouter(
-    userSvc *service.UserService,
-    sessionSvc *service.SessionService,
-    emailSvc *service.EmailService,
-    urlSvc *service.URLService,
-    passwordSvc *service.PasswordService,
-    log *slog.Logger,
-) http.Handler
+func NewRouter(services *service.Services, log *slog.Logger) http.Handler
 ```
 
 **Endpoints:**
@@ -103,26 +96,15 @@ DELETE /api/v1/urls/{slug}     → h.DeleteURL
 
 ### Handler (`handler/handler.go`)
 
-Converts HTTP requests to service calls. Holds direct references to all services.
+Converts HTTP requests to service calls. Uses `*service.Services` for DI.
 
 ```go
 type Handler struct {
-    userSvc     *service.UserService
-    sessionSvc  *service.SessionService
-    emailSvc    *service.EmailService
-    urlSvc      *service.URLService
-    passwordSvc *service.PasswordService
-    log         *slog.Logger
+    services *service.Services
+    log      *slog.Logger
 }
 
-func NewHandler(
-    userSvc *service.UserService,
-    sessionSvc *service.SessionService,
-    emailSvc *service.EmailService,
-    urlSvc *service.URLService,
-    passwordSvc *service.PasswordService,
-    log *slog.Logger,
-) *Handler
+func NewHandler(services *service.Services, log *slog.Logger) *Handler
 ```
 
 ---
@@ -319,7 +301,7 @@ docker-compose -f dev-compose.yml up -d
 |-----------|---------------|
 | **Single Responsibility** | Each service handles one domain, each repo handles one table |
 | **Dependency Injection** | Dependencies passed via constructors |
-| **DRY** | Shared `slowQueryLogger` in `common.go` |
+| **DRY** | Shared `slowQueryLogger` in `slowQueryLogger.go` |
 | **Layered Architecture** | Handler → Service → Repository → Database |
 
 ---
