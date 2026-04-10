@@ -25,17 +25,10 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-func NewRouter(
-	userSvc *service.UserService,
-	sessionSvc *service.SessionService,
-	emailSvc *service.EmailService,
-	urlSvc *service.URLService,
-	passwordSvc *service.PasswordService,
-	log *slog.Logger,
-) http.Handler {
+func NewRouter(services *service.Services, log *slog.Logger) http.Handler {
 	mux := http.NewServeMux()
 
-	h := handler.NewHandler(userSvc, sessionSvc, emailSvc, urlSvc, passwordSvc, log)
+	h := handler.NewHandler(services, log)
 
 	mux.HandleFunc("POST /api/v1/auth/register", h.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", h.Login)

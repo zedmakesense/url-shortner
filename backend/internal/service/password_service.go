@@ -8,14 +8,14 @@ import (
 )
 
 type PasswordService struct {
-	passwordRepo *repository.PasswordRepository
-	log          *slog.Logger
+	repos *repository.Repositories
+	log   *slog.Logger
 }
 
-func NewPasswordService(passwordRepo *repository.PasswordRepository, log *slog.Logger) *PasswordService {
+func NewPasswordService(repos *repository.Repositories, log *slog.Logger) *PasswordService {
 	return &PasswordService{
-		passwordRepo: passwordRepo,
-		log:          log,
+		repos: repos,
+		log:   log,
 	}
 }
 
@@ -24,9 +24,5 @@ func (s *PasswordService) ChangePasswordAndRevoke(ctx context.Context, userID in
 	if err != nil {
 		return err
 	}
-	return s.passwordRepo.ChangePasswordAndRevoke(ctx, userID, hashedPassword)
-}
-
-type PasswordServiceInterface interface {
-	ChangePasswordAndRevoke(ctx context.Context, userID int, password string) error
+	return s.repos.Password.ChangePasswordAndRevoke(ctx, userID, hashedPassword)
 }

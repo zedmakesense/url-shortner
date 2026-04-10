@@ -10,14 +10,14 @@ import (
 )
 
 type SessionService struct {
-	sessionRepo *repository.SessionRepository
-	log         *slog.Logger
+	repos *repository.Repositories
+	log   *slog.Logger
 }
 
-func NewSessionService(sessionRepo *repository.SessionRepository, log *slog.Logger) *SessionService {
+func NewSessionService(repos *repository.Repositories, log *slog.Logger) *SessionService {
 	return &SessionService{
-		sessionRepo: sessionRepo,
-		log:         log,
+		repos: repos,
+		log:   log,
 	}
 }
 
@@ -29,25 +29,26 @@ func (s *SessionService) StoreTokens(
 	accessExpiresAt time.Time,
 	refreshExpiresAt time.Time,
 ) error {
-	return s.sessionRepo.InsertSession(
+	return s.repos.Session.InsertSession(
 		ctx,
 		userID,
 		hashToken(accessToken),
 		hashToken(refreshToken),
 		accessExpiresAt,
-		refreshExpiresAt)
+		refreshExpiresAt,
+	)
 }
 
 func (s *SessionService) RevokeToken(ctx context.Context, refreshToken string) error {
-	token, err := s.sessionRepo.GetByRefreshToken(ctx, hashToken(refreshToken))
+	token, err := s.repos.Session.GetByRefreshToken(ctx, hashToken(refreshToken))
 	if err != nil {
 		return err
 	}
-	return s.sessionRepo.RevokeToken(ctx, token.SessionID)
+	return s.repos.Session.RevokeToken(ctx, token.SessionID)
 }
 
 func (s *SessionService) RevokeTokens(ctx context.Context, userID int, sessionID int) error {
-	return s.sessionRepo.RevokeTokens(ctx, userID, sessionID)
+	return s.repos.Session.RevokeTokens(ctx, userID, sessionID)
 }
 
 func (s *SessionService) ReplaceTokens(
@@ -58,15 +59,18 @@ func (s *SessionService) ReplaceTokens(
 	accessExpiresAt time.Time,
 	refreshExpiresAt time.Time,
 ) error {
-	return s.sessionRepo.ReplaceTokens(
+	return s.repos.Session.ReplaceTokens(
 		ctx,
 		hashToken(accessToken),
 		hashToken(refreshToken),
-		userID, accessExpiresAt, refreshExpiresAt)
+		userID,
+		accessExpiresAt,
+		refreshExpiresAt,
+	)
 }
 
 func (s *SessionService) GetByAccessToken(ctx context.Context, accessToken string) (int, int, error) {
-	token, err := s.sessionRepo.GetByAccessToken(ctx, hashToken(accessToken))
+	token, err := s.repos.Session.GetByAccessToken(ctx, hashToken(accessToken))
 	if err != nil {
 		return 0, 0, err
 	}
@@ -74,7 +78,7 @@ func (s *SessionService) GetByAccessToken(ctx context.Context, accessToken strin
 }
 
 func (s *SessionService) GetByRefreshToken(ctx context.Context, refreshToken string) (int, int, error) {
-	token, err := s.sessionRepo.GetByRefreshToken(ctx, hashToken(refreshToken))
+	token, err := s.repos.Session.GetByRefreshToken(ctx, hashToken(refreshToken))
 	if err != nil {
 		return 0, 0, err
 	}
@@ -85,7 +89,7 @@ func (s *SessionService) GetByRefreshToken(ctx context.Context, refreshToken str
 }
 
 func (s *SessionService) ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error) {
-	token, err := s.sessionRepo.GetByAccessToken(ctx, hashToken(accessToken))
+	token, err := s.repos.Session.GetByAccessToken(ctx, hashToken(accessToken))
 	if err != nil {
 		return 0, 0, err
 	}
@@ -100,29 +104,4 @@ func (s *SessionService) ValidateAccessToken(ctx context.Context, accessToken st
 
 func (s *SessionService) GenerateToken() (string, error) {
 	return GenerateRandomToken()
-}
-
-type SessionServiceInterface interface {
-	StoreTokens(
-		ctx context.Context,
-		userID int,
-		accessToken string,
-		refreshToken string,
-		accessExpiresAt time.Time,
-		refreshExpiresAt time.Time,
-	) error
-	RevokeToken(ctx context.Context, refreshToken string) error
-	RevokeTokens(ctx context.Context, userID int, sessionID int) error
-	ReplaceTokens(
-		ctx context.Context,
-		accessToken string,
-		refreshToken string,
-		userID int,
-		accessExpiresAt time.Time,
-		refreshExpiresAt time.Time,
-	) error
-	GetByAccessToken(ctx context.Context, accessToken string) (int, int, error)
-	GetByRefreshToken(ctx context.Context, refreshToken string) (int, int, error)
-	ValidateAccessToken(ctx context.Context, accessToken string) (int, int, error)
-	GenerateToken() (string, error)
 }

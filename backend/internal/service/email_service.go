@@ -13,23 +13,16 @@ import (
 )
 
 type EmailService struct {
-	emailRepo *repository.EmailRepository
-	userRepo  *repository.UserRepository
-	log       *slog.Logger
-	mail      *resend.Client
+	repos *repository.Repositories
+	log   *slog.Logger
+	mail  *resend.Client
 }
 
-func NewEmailService(
-	emailRepo *repository.EmailRepository,
-	userRepo *repository.UserRepository,
-	log *slog.Logger,
-	mail *resend.Client,
-) *EmailService {
+func NewEmailService(repos *repository.Repositories, log *slog.Logger, mail *resend.Client) *EmailService {
 	return &EmailService{
-		emailRepo: emailRepo,
-		userRepo:  userRepo,
-		log:       log,
-		mail:      mail,
+		repos: repos,
+		log:   log,
+		mail:  mail,
 	}
 }
 
@@ -40,11 +33,12 @@ func (s *EmailService) SendEmail(ctx context.Context, email string, userID int, 
 		return err
 	}
 	hashedToken := hashToken(token)
-	if err = s.emailRepo.InsertEmailToken(
+	if err = s.repos.Email.InsertEmailToken(
 		ctx,
 		userID,
 		hashedToken,
-		time.Now().Add(time.Duration(expiresAt)*time.Hour)); err != nil {
+		time.Now().Add(time.Duration(expiresAt)*time.Hour),
+	); err != nil {
 		return err
 	}
 
@@ -70,7 +64,7 @@ func (s *EmailService) SendEmail(ctx context.Context, email string, userID int, 
 }
 
 func (s *EmailService) CheckEmail(ctx context.Context, userID int) error {
-	emailTable, err := s.emailRepo.GetEmailTableByID(ctx, userID)
+	emailTable, err := s.repos.Email.GetEmailTableByID(ctx, userID)
 	if err != nil {
 		if errors.Is(err, domain.ErrTokenNotFound) {
 			return err
@@ -83,22 +77,22 @@ func (s *EmailService) CheckEmail(ctx context.Context, userID int) error {
 }
 
 func (s *EmailService) RevokeEmailTokens(ctx context.Context, userID int) error {
-	return s.emailRepo.RevokeEmailTokens(ctx, userID)
+	return s.repos.Email.RevokeEmailTokens(ctx, userID)
 }
 
 func (s *EmailService) VerifyEmail(ctx context.Context, token string) error {
 	hashedToken := hashToken(token)
-	emailTable, err := s.emailRepo.GetEmailTableByToken(ctx, hashedToken)
+	emailTable, err := s.repos.Email.GetEmailTableByToken(ctx, hashedToken)
 	if errors.Is(err, domain.ErrTokenNotFound) {
 		return domain.ErrEmailVerificationFailed
 	}
 	if err != nil {
 		return err
 	}
-	if err = s.userRepo.MarkUserVerified(ctx, emailTable.UserID); err != nil {
+	if err = s.repos.User.MarkUserVerified(ctx, emailTable.UserID); err != nil {
 		return err
 	}
-	if err = s.emailRepo.RevokeEmailTokens(ctx, emailTable.UserID); err != nil {
+	if err = s.repos.Email.RevokeEmailTokens(ctx, emailTable.UserID); err != nil {
 		return err
 	}
 	return nil
@@ -106,31 +100,31 @@ func (s *EmailService) VerifyEmail(ctx context.Context, token string) error {
 
 func (s *EmailService) VerifyEmailToken(ctx context.Context, token string) (int, error) {
 	hashedToken := hashToken(token)
-	emailTable, err := s.emailRepo.GetEmailTableByToken(ctx, hashedToken)
+	emailTable, err := s.repos.Email.GetEmailTableByToken(ctx, hashedToken)
 	if errors.Is(err, domain.ErrTokenNotFound) {
 		return 0, domain.ErrEmailVerificationFailed
 	}
 	if err != nil {
 		return 0, err
 	}
-	if err = s.userRepo.MarkUserVerified(ctx, emailTable.UserID); err != nil {
+	if err = s.repos.User.MarkUserVerified(ctx, emailTable.UserID); err != nil {
 		return 0, err
 	}
-	if err = s.emailRepo.RevokeEmailTokens(ctx, emailTable.UserID); err != nil {
+	if err = s.repos.Email.RevokeEmailTokens(ctx, emailTable.UserID); err != nil {
 		return 0, err
 	}
 	return emailTable.UserID, nil
 }
 
 func (s *EmailService) SendForgotPasswordMail(ctx context.Context, email string) error {
-	user, err := s.userRepo.GetUserByEmail(ctx, email)
+	user, err := s.repos.User.GetUserByEmail(ctx, email)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDoesNotExist) {
 			return domain.ErrUserDoesNotExist
 		}
 		return err
 	}
-	if _, err = s.emailRepo.GetEmailTableByID(ctx, user.ID); err != nil {
+	if _, err = s.repos.Email.GetEmailTableByID(ctx, user.ID); err != nil {
 		if errors.Is(err, domain.ErrTokenNotFound) {
 			return domain.ErrUserDoesNotExist
 		}
@@ -140,13 +134,4 @@ func (s *EmailService) SendForgotPasswordMail(ctx context.Context, email string)
 		return err
 	}
 	return nil
-}
-
-type EmailServiceInterface interface {
-	SendEmail(ctx context.Context, email string, userID int, expiresAt int) error
-	CheckEmail(ctx context.Context, userID int) error
-	RevokeEmailTokens(ctx context.Context, userID int) error
-	VerifyEmail(ctx context.Context, token string) error
-	VerifyEmailToken(ctx context.Context, token string) (int, error)
-	SendForgotPasswordMail(ctx context.Context, email string) error
 }

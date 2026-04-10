@@ -81,19 +81,10 @@ func New() (*App, error) {
 
 	log.Info("redis connection established")
 
-	userRepo := repository.NewUserRepository(dbpool, log)
-	sessionRepo := repository.NewSessionRepository(dbpool, log)
-	emailRepo := repository.NewEmailRepository(dbpool, log)
-	urlRepo := repository.NewURLRepository(dbpool, log)
-	passwordRepo := repository.NewPasswordRepository(dbpool, log)
+	repos := repository.NewRepositories(dbpool, log)
+	services := service.NewServices(repos, log, mail)
 
-	sessionSvc := service.NewSessionService(sessionRepo, log)
-	emailSvc := service.NewEmailService(emailRepo, userRepo, log, mail)
-	urlSvc := service.NewURLService(urlRepo, log)
-	passwordSvc := service.NewPasswordService(passwordRepo, log)
-	userSvc := service.NewUserService(userRepo, sessionSvc, emailSvc, passwordSvc, log)
-
-	router := NewRouter(userSvc, sessionSvc, emailSvc, urlSvc, passwordSvc, log)
+	router := NewRouter(services, log)
 
 	server := &http.Server{
 		Addr:         ":" + cfg.App.Port,

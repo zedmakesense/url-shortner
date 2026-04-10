@@ -9,26 +9,16 @@ import (
 )
 
 type UserService struct {
-	userRepo    *repository.UserRepository
-	sessionSvc  *SessionService
-	emailSvc    *EmailService
-	passwordSvc *PasswordService
-	log         *slog.Logger
+	repos    *repository.Repositories
+	services *Services
+	log      *slog.Logger
 }
 
-func NewUserService(
-	userRepo *repository.UserRepository,
-	sessionSvc *SessionService,
-	emailSvc *EmailService,
-	passwordSvc *PasswordService,
-	log *slog.Logger,
-) *UserService {
+func NewUserService(repos *repository.Repositories, services *Services, log *slog.Logger) *UserService {
 	return &UserService{
-		userRepo:    userRepo,
-		sessionSvc:  sessionSvc,
-		emailSvc:    emailSvc,
-		passwordSvc: passwordSvc,
-		log:         log,
+		repos:    repos,
+		services: services,
+		log:      log,
 	}
 }
 
@@ -38,19 +28,19 @@ func (s *UserService) Register(ctx context.Context, email string, name string, p
 		return 0, err
 	}
 
-	userID, err := s.userRepo.InsertUser(ctx, email, name, hashedPassword)
+	userID, err := s.repos.User.InsertUser(ctx, email, name, hashedPassword)
 	if err != nil {
 		return 0, err
 	}
 
-	if err = s.emailSvc.SendEmail(ctx, email, userID, 1); err != nil {
+	if err = s.services.Email.SendEmail(ctx, email, userID, 1); err != nil {
 		return userID, err
 	}
 	return userID, nil
 }
 
 func (s *UserService) Login(ctx context.Context, email string, password string) (int, error) {
-	user, err := s.userRepo.GetUserByEmail(ctx, email)
+	user, err := s.repos.User.GetUserByEmail(ctx, email)
 	if err != nil {
 		return 0, err
 	}
@@ -58,11 +48,11 @@ func (s *UserService) Login(ctx context.Context, email string, password string) 
 }
 
 func (s *UserService) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
-	return s.userRepo.GetUserByUserID(ctx, userID)
+	return s.repos.User.GetUserByUserID(ctx, userID)
 }
 
 func (s *UserService) CheckPassword(ctx context.Context, userID int, password string) error {
-	user, err := s.userRepo.GetUserByUserID(ctx, userID)
+	user, err := s.repos.User.GetUserByUserID(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -70,5 +60,5 @@ func (s *UserService) CheckPassword(ctx context.Context, userID int, password st
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, userID int) error {
-	return s.userRepo.DeleteUser(ctx, userID)
+	return s.repos.User.DeleteUser(ctx, userID)
 }

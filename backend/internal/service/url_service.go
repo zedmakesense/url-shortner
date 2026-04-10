@@ -14,14 +14,14 @@ import (
 const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 type URLService struct {
-	urlRepo *repository.URLRepository
-	log     *slog.Logger
+	repos *repository.Repositories
+	log   *slog.Logger
 }
 
-func NewURLService(urlRepo *repository.URLRepository, log *slog.Logger) *URLService {
+func NewURLService(repos *repository.Repositories, log *slog.Logger) *URLService {
 	return &URLService{
-		urlRepo: urlRepo,
-		log:     log,
+		repos: repos,
+		log:   log,
 	}
 }
 
@@ -38,12 +38,12 @@ func generateCode(n int) (string, error) {
 }
 
 func (s *URLService) GetLongURL(ctx context.Context, shortCode string) (string, error) {
-	url, err := s.urlRepo.GetURLByShortCode(ctx, shortCode)
+	url, err := s.repos.URL.GetURLByShortCode(ctx, shortCode)
 	return url.LongURL, err
 }
 
 func (s *URLService) URLClicked(ctx context.Context, shortCode string) error {
-	return s.urlRepo.URLClicked(ctx, shortCode)
+	return s.repos.URL.URLClicked(ctx, shortCode)
 }
 
 func (s *URLService) InsertURL(ctx context.Context, longURL string, userID int) (string, error) {
@@ -52,29 +52,20 @@ func (s *URLService) InsertURL(ctx context.Context, longURL string, userID int) 
 	if err != nil {
 		return "", err
 	}
-	if err = s.urlRepo.InsertURL(ctx, shortCode, longURL, userID, time.Now()); err != nil {
+	if err = s.repos.URL.InsertURL(ctx, shortCode, longURL, userID, time.Now()); err != nil {
 		return "", err
 	}
 	return shortCode, nil
 }
 
 func (s *URLService) GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error) {
-	return s.urlRepo.GetURLByUserID(ctx, userID)
+	return s.repos.URL.GetURLByUserID(ctx, userID)
 }
 
 func (s *URLService) GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error) {
-	return s.urlRepo.GetURLByShortCode(ctx, shortCode)
+	return s.repos.URL.GetURLByShortCode(ctx, shortCode)
 }
 
 func (s *URLService) DeleteURLByShortCode(ctx context.Context, shortCode string) error {
-	return s.urlRepo.DeleteURLByShortCode(ctx, shortCode)
-}
-
-type URLServiceInterface interface {
-	GetLongURL(ctx context.Context, shortCode string) (string, error)
-	URLClicked(ctx context.Context, shortCode string) error
-	InsertURL(ctx context.Context, longURL string, userID int) (string, error)
-	GetURLByUserID(ctx context.Context, userID int) ([]domain.URL, error)
-	GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error)
-	DeleteURLByShortCode(ctx context.Context, shortCode string) error
+	return s.repos.URL.DeleteURLByShortCode(ctx, shortCode)
 }
