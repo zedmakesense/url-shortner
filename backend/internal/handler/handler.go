@@ -402,25 +402,27 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	var userRequest domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		handlerLogger.WarnContext(r.Context(), "invalid json in Register", "error", err)
-		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
+		resp := map[string]string{"message": "forgot password email successfully sended"}
+		if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
 			return
 		}
 		return
 	}
 	if !isValidEmail(userRequest.Email) {
-		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid email in Register")
-		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
+		resp := map[string]string{"message": "forgot password email successfully sended"}
+		if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
 			return
 		}
+		return
 	}
 	if err := h.service.SendForgotPasswordMail(r.Context(), userRequest.Email); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
+		handlerLogger.ErrorContext(r.Context(), "SendForgotPasswordMail", "error", err)
+		resp := map[string]string{"message": "forgot password email successfully sended"}
+		if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
 			return
 		}
-		handlerLogger.ErrorContext(r.Context(), "SendForgotPasswordMail", "error", err)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
