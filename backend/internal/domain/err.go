@@ -24,3 +24,5 @@ var (
 	ErrURLAlreadyExist = errors.New("url short code already exists")
 	ErrURLDoesNotExist = errors.New("url short code does not exists")
 )
+
+var ErrCachingFailed = errors.New("redis was unable to cache")

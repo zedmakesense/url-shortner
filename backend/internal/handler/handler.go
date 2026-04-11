@@ -122,7 +122,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	email, name, password := h.parseRegister(w, r)
 	userID, err := h.service.Register(r.Context(), email, name, password)
-	if err != nil {
+	if err != nil && errors.Is(err, domain.ErrCachingFailed) {
 		if errors.Is(err, domain.ErrEmailAlreadyExists) {
 			w.WriteHeader(http.StatusConflict)
 			handlerLogger.WarnContext(r.Context(), "email already exist", "error", err)
@@ -137,6 +137,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		return
+	}
+	if errors.Is(err, domain.ErrCachingFailed) {
+		handlerLogger.WarnContext(r.Context(), "Register", "error", err)
 	}
 
 	accessToken := h.GenerateToken(w, r)
@@ -558,7 +561,7 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 	}
 	var shortCode domain.ShortCode
 	shortCode.ShortCode, err = h.service.InsertURL(r.Context(), longURL.LongURL, userID)
-	if err != nil {
+	if err != nil && errors.Is(err, domain.ErrCachingFailed) {
 		if errors.Is(err, domain.ErrURLAlreadyExist) {
 			w.WriteHeader(http.StatusBadRequest)
 			handlerLogger.WarnContext(r.Context(), "InsertURL", "error", err)
@@ -573,6 +576,9 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 		}
 		handlerLogger.ErrorContext(r.Context(), "InsertURL", "error", err)
 		return
+	}
+	if errors.Is(err, domain.ErrCachingFailed) {
+		handlerLogger.ErrorContext(r.Context(), "InsertURL", "error", err)
 	}
 	if encErr := json.NewEncoder(w).Encode(shortCode.ShortCode); encErr != nil {
 		return

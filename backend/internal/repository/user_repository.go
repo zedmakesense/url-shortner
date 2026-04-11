@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -34,6 +35,23 @@ func (r *Repository) logSlowQueries(ctx context.Context, op string, start time.T
 			"duration_ms", elapsed.Milliseconds(),
 		)
 	}
+}
+
+func userIDToKey(userID int) string {
+	return strconv.Itoa(userID)
+}
+
+func (r *Repository) CacheUserProfile(ctx context.Context, userID int, name string, email string, isEmailVerified bool, createdAt time.Time) error {
+	return r.rdb.HSet(ctx,
+		userIDToKey(userID),
+		"name",
+		name,
+		"email",
+		email,
+		"is_email_verified",
+		isEmailVerified,
+		"created_at",
+		createdAt.String()).Err()
 }
 
 func (r *Repository) InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error) {
@@ -98,6 +116,25 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.U
 	}
 	r.logSlowQueries(ctx, "GetUserByEmail", start)
 	return user, nil
+}
+
+func (r *Repository) GetCachedProfile(ctx context.Context, userID int) (domain.User, bool, error) {
+	fields, err := r.rdb.HGetAll(ctx, userIDToKey(userID)).Result()
+	if err == redis.Nil || len(fields) == 0 {
+		return domain.User{}, false, nil
+	} else if err != nil {
+		return domain.User{}, false, err
+	}
+	isVerified, _ := strconv.ParseBool(fields["is_verified"])
+	createdAt, _ := time.Parse("2006-01-02 15:04:05.999999999 -0700 MST", fields["created_at"])
+	user := domain.User{
+		ID:              userID,
+		Name:            fields["name"],
+		Email:           fields["email"],
+		IsEmailVerified: isVerified,
+		CreatedAt:       createdAt,
+	}
+	return user, true, nil
 }
 
 func (r *Repository) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
@@ -402,6 +439,16 @@ func (r *Repository) ChangePasswordAndRevoke(
 	return tx.Commit(ctx)
 }
 
+func (r *Repository) GetCachedLongURL(ctx context.Context, shortCode string) (string, bool, error) {
+	val, err := r.rdb.Get(ctx, shortCode).Result()
+	if errors.Is(err, redis.Nil) {
+		return "", false, nil
+	} else if err != nil {
+		return "", false, err
+	}
+	return val, true, nil
+}
+
 func (r *Repository) GetURLByShortCode(ctx context.Context, shortCode string) (domain.URL, error) {
 	start := time.Now()
 	query := `
@@ -489,6 +536,10 @@ func (r *Repository) InsertURL(
 	defer rows.Close()
 	r.logSlowQueries(ctx, "InsertURL", start)
 	return nil
+}
+
+func (r *Repository) CacheShortURL(ctx context.Context, shortCode string, longURL string) error {
+	return r.rdb.Set(ctx, shortCode, longURL, 0).Err()
 }
 
 func (r *Repository) URLClicked(ctx context.Context, shortCode string) error {
