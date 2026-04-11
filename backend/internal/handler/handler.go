@@ -46,6 +46,7 @@ func isValidEmail(email string) bool {
 
 func (h *Handler) GenerateToken(w http.ResponseWriter, r *http.Request) string {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	token, err := h.service.GenerateToken()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -60,6 +61,7 @@ func (h *Handler) GenerateToken(w http.ResponseWriter, r *http.Request) string {
 
 func (h *Handler) parseRegister(w http.ResponseWriter, r *http.Request) (string, string, string) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 
 	var userRequest domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
@@ -96,6 +98,7 @@ func (h *Handler) StoreCookies(
 	refreshToken string,
 ) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	accessExpiresAt := time.Now().Add(AccessTokenDuration)
 	refreshExpiresAt := time.Now().Add(RefreshTokenDuration)
 	if err := h.service.StoreTokens(
@@ -116,6 +119,7 @@ func (h *Handler) StoreCookies(
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	email, name, password := h.parseRegister(w, r)
 	userID, err := h.service.Register(r.Context(), email, name, password)
 	if err != nil {
@@ -141,7 +145,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	h.StoreCookies(w, r, userID, accessToken, refreshToken)
 
 	h.WriteCookies(w, accessToken, refreshToken)
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "Registration successful"}); encErr != nil {
 		return
@@ -150,6 +153,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) parseLogin(w http.ResponseWriter, r *http.Request) (string, string) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	var userRequest domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -203,6 +207,7 @@ func (h *Handler) WriteCookies(w http.ResponseWriter, accessToken string, refres
 
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 
 	email, password := h.parseLogin(w, r)
 	userID, err := h.service.Login(r.Context(), email, password)
@@ -228,7 +233,6 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 	h.StoreCookies(w, r, userID, accessToken, refreshToken)
 	h.WriteCookies(w, accessToken, refreshToken)
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"}); encErr != nil {
 		return
@@ -237,6 +241,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
 		handlerLogger.WarnContext(r.Context(), "cookie", "error", err)
@@ -253,7 +258,6 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.WriteCookies(w, "", "")
-	w.Header().Set("Content-Type", "application/json")
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "Logged out successfully"}); encErr != nil {
 		return
 	}
@@ -261,9 +265,9 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	cookie, err := r.Cookie("refresh_token")
 	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		handlerLogger.WarnContext(r.Context(), "cookie", "error", err)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "unauthorized"}); encErr != nil {
@@ -314,7 +318,6 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.WriteCookies(w, accessToken, refreshToken)
-	w.Header().Set("Content-Type", "application/json")
 	resp := map[string]string{"message": "Token refreshed successfully"}
 	if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
 		return
@@ -323,6 +326,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -333,7 +337,6 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := h.service.VerifyEmail(r.Context(), token); err != nil {
 		if errors.Is(err, domain.ErrEmailVerificationFailed) {
-			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusInternalServerError)
 			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "Verification failed"}); encErr != nil {
 				return
@@ -348,7 +351,6 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 		handlerLogger.ErrorContext(r.Context(), "VerifyEmail", "error", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "verification successfull"}); encErr != nil {
 		return
 	}
@@ -356,6 +358,7 @@ func (h *Handler) VerifyEmail(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	var userRequest domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&userRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -382,7 +385,6 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	resp := map[string]string{"message": "forgot password email successfully sended"}
 	if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
 		return
@@ -391,6 +393,7 @@ func (h *Handler) ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	token := r.URL.Query().Get("token")
 	if token == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -411,7 +414,6 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 	var user domain.UserRequest
 	if err = json.NewDecoder(r.Body).Decode(&user); err != nil {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid JSON"}); encErr != nil {
 			return
@@ -419,7 +421,6 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user.Password == "" {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid JSON"}); encErr != nil {
 			return
@@ -435,7 +436,6 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 		handlerLogger.ErrorContext(r.Context(), "ChangePasswordAndRevoke", "error", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "password reset successfull"}); encErr != nil {
 		return
 	}
@@ -443,6 +443,7 @@ func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	cookie, _ := r.Cookie("access_token")
 	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
 	if err != nil {
@@ -463,7 +464,6 @@ func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	resp := domain.UserResponse{
 		ID:              user.ID,
@@ -487,6 +487,7 @@ func (h *Handler) ValidateAccessToken(ctx context.Context, accessToken string) (
 
 func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	shortCode := r.PathValue("slug")
 	longURL, err := h.service.GetLongURL(r.Context(), shortCode)
 	if err != nil {
@@ -526,6 +527,7 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	cookie, _ := r.Cookie("access_token")
 	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
 	if err != nil {
@@ -572,7 +574,6 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 		handlerLogger.ErrorContext(r.Context(), "InsertURL", "error", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	if encErr := json.NewEncoder(w).Encode(shortCode.ShortCode); encErr != nil {
 		return
 	}
@@ -580,6 +581,7 @@ func (h *Handler) InsertURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	cookie, _ := r.Cookie("access_token")
 	_, userID, err := h.service.GetByAccessToken(r.Context(), cookie.Value)
 	if err != nil {
@@ -611,7 +613,6 @@ func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
 	for _, url := range urls {
 		urlResponses = append(urlResponses, domain.URLResponse(url))
 	}
-	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(urlResponses); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -620,6 +621,7 @@ func (h *Handler) GetURLs(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	shortCode := r.PathValue("slug")
 	url, err := h.service.GetURLByShortCode(r.Context(), shortCode)
 	if err != nil {
@@ -639,7 +641,6 @@ func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	urlResponse := domain.URLResponse(url)
-	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(urlResponse); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		handlerLogger.ErrorContext(r.Context(), "json encoding", "error", err)
@@ -649,6 +650,7 @@ func (h *Handler) GetURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) DeleteURL(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	shortCode := r.PathValue("slug")
 	err := h.service.DeleteURLByShortCode(r.Context(), shortCode)
 	if err != nil {
@@ -667,7 +669,6 @@ func (h *Handler) DeleteURL(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	resp := map[string]string{"message": "long url deleted successfully"}
 	if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
 		return
@@ -676,9 +677,9 @@ func (h *Handler) DeleteURL(w http.ResponseWriter, r *http.Request) {
 
 func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
+	w.Header().Set("Content-Type", "application/json")
 	var user domain.UserRequest
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid JSON"}); encErr != nil {
 			return
@@ -686,7 +687,6 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if user.Password == "" {
-		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid JSON"}); encErr != nil {
 			return
@@ -719,7 +719,6 @@ func (h *Handler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 		handlerLogger.ErrorContext(r.Context(), "DeleteUser", "error", err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "user deleted successfully"}); encErr != nil {
 		return
 	}
