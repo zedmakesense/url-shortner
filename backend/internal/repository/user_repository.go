@@ -422,7 +422,7 @@ func (r *Repository) GetURLByShortCode(ctx context.Context, shortCode string) (d
 		&url.ClickCount)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return domain.URL{}, domain.ErrTokenNotFound
+			return domain.URL{}, domain.ErrURLDoesNotExist
 		}
 		return domain.URL{}, err
 	}
