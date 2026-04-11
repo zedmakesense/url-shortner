@@ -16,7 +16,12 @@ import (
 )
 
 type RepositoryInterface interface {
-	CacheUserProfile(ctx context.Context, userID int, name string, email string, isEmailVerified bool, createdAt time.Time) error
+	CacheUserProfile(ctx context.Context,
+		userID int,
+		name string,
+		email string,
+		isEmailVerified bool,
+		createdAt time.Time) error
 	InsertUser(ctx context.Context, email string, name string, hashedPassword string) (int, error)
 	InsertSession(
 		ctx context.Context,
@@ -112,7 +117,13 @@ func NewService(repo RepositoryInterface, log *slog.Logger, mail *resend.Client)
 	}
 }
 
-func (s *serviceStruct) cacheUserProfile(ctx context.Context, userID int, name string, email string, isEmailVerified bool, createdAt time.Time) error {
+func (s *serviceStruct) cacheUserProfile(ctx context.Context,
+	userID int,
+	name string,
+	email string,
+	isEmailVerified bool,
+	createdAt time.Time,
+) error {
 	return s.repo.CacheUserProfile(ctx, userID, name, email, isEmailVerified, createdAt)
 }
 
@@ -222,7 +233,6 @@ func (s *serviceStruct) GetByAccessToken(ctx context.Context, accessToken string
 
 func (s *serviceStruct) GetUserByUserID(ctx context.Context, userID int) (domain.User, error) {
 	user, hit, err := s.repo.GetCachedProfile(ctx, userID)
-
 	if err != nil {
 		return domain.User{}, err
 	}

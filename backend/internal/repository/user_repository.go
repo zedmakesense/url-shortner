@@ -41,7 +41,13 @@ func userIDToKey(userID int) string {
 	return strconv.Itoa(userID)
 }
 
-func (r *Repository) CacheUserProfile(ctx context.Context, userID int, name string, email string, isEmailVerified bool, createdAt time.Time) error {
+func (r *Repository) CacheUserProfile(ctx context.Context,
+	userID int,
+	name string,
+	email string,
+	isEmailVerified bool,
+	createdAt time.Time,
+) error {
 	return r.rdb.HSet(ctx,
 		userIDToKey(userID),
 		"name",
@@ -120,7 +126,7 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.U
 
 func (r *Repository) GetCachedProfile(ctx context.Context, userID int) (domain.User, bool, error) {
 	fields, err := r.rdb.HGetAll(ctx, userIDToKey(userID)).Result()
-	if err == redis.Nil || len(fields) == 0 {
+	if errors.Is(err, redis.Nil) || len(fields) == 0 {
 		return domain.User{}, false, nil
 	} else if err != nil {
 		return domain.User{}, false, err
