@@ -110,7 +110,7 @@ func (h *Handler) StoreCookies(
 		refreshExpiresAt); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		handlerLogger.ErrorContext(r.Context(), "StoreTokens", "error", err)
-		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "Server error"}); encErr != nil {
+		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
 			return
 		}
 		return
@@ -122,24 +122,24 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	email, name, password := h.parseRegister(w, r)
 	userID, err := h.service.Register(r.Context(), email, name, password)
-	if err != nil && errors.Is(err, domain.ErrCachingFailed) {
-		if errors.Is(err, domain.ErrEmailAlreadyExists) {
-			w.WriteHeader(http.StatusConflict)
-			handlerLogger.WarnContext(r.Context(), "email already exist", "error", err)
-			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "email already exist"}); encErr != nil {
-				return
-			}
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		handlerLogger.WarnContext(r.Context(), "user creation failed", "error", err)
-		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
+
+	if errors.Is(err, domain.ErrEmailAlreadyExists) {
+		w.WriteHeader(http.StatusConflict)
+		handlerLogger.WarnContext(r.Context(), "email already exist", "error", err)
+		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "email already exist"}); encErr != nil {
 			return
 		}
 		return
 	}
-	if errors.Is(err, domain.ErrCachingFailed) {
-		handlerLogger.WarnContext(r.Context(), "Register", "error", err)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		handlerLogger.WarnContext(r.Context(), "user creation failed", "error", err)
+		if !errors.Is(err, domain.ErrCachingFailed) {
+			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
+				return
+			}
+		}
+		return
 	}
 
 	accessToken := h.GenerateToken(w, r)
@@ -494,12 +494,8 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 	shortCode := r.PathValue("slug")
 	longURL, err := h.service.GetLongURL(r.Context(), shortCode)
 	if err != nil {
-		if errors.Is(err, domain.ErrURLAlreadyExist) {
-			w.WriteHeader(http.StatusBadRequest)
-			handlerLogger.WarnContext(r.Context(), "GetLongURL", "error", err)
-			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "URL already exist"}); encErr != nil {
-				return
-			}
+		if errors.Is(err, domain.ErrURLDoesNotExist) {
+			http.NotFound(w, r)
 			return
 		}
 		w.WriteHeader(http.StatusInternalServerError)
@@ -510,20 +506,11 @@ func (h *Handler) Redirect(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = h.service.URLClicked(r.Context(), shortCode); err != nil {
-		if errors.Is(err, domain.ErrURLAlreadyExist) {
-			w.WriteHeader(http.StatusBadRequest)
-			handlerLogger.WarnContext(r.Context(), "URLClicked", "error", err)
-			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "URL already exist"}); encErr != nil {
-				return
-			}
-			return
-		}
-		w.WriteHeader(http.StatusInternalServerError)
-		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
+		if errors.Is(err, domain.ErrURLDoesNotExist) {
+			http.NotFound(w, r)
 			return
 		}
 		handlerLogger.WarnContext(r.Context(), "URLClicked", "error", err)
-		return
 	}
 	http.Redirect(w, r, longURL, http.StatusMovedPermanently)
 }

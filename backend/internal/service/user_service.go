@@ -317,7 +317,7 @@ func (s *serviceStruct) SendEmail(ctx context.Context, email string, userID int,
 
 	_, err = s.mail.Emails.SendWithContext(ctx, params)
 	// this log is here cuz I dont have domain to send email from 😭
-	serviceLogger.InfoContext(ctx, "failed to send email", "email", verifyURL)
+	serviceLogger.InfoContext(ctx, "click here bud", "email", verifyURL)
 	if err != nil {
 		serviceLogger.ErrorContext(ctx, "failed to send email", "email", email, "error", err)
 		return err
