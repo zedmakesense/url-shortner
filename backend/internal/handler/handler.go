@@ -44,7 +44,7 @@ func isValidEmail(email string) bool {
 	return emailRegex.MatchString(email)
 }
 
-func (h *Handler) GenerateToken(w http.ResponseWriter, r *http.Request) string {
+func (h *Handler) GenerateToken(w http.ResponseWriter, r *http.Request) (string, error) {
 	handlerLogger := h.log.With("component", "handler")
 	w.Header().Set("Content-Type", "application/json")
 	token, err := h.service.GenerateToken()
@@ -52,14 +52,14 @@ func (h *Handler) GenerateToken(w http.ResponseWriter, r *http.Request) string {
 		w.WriteHeader(http.StatusInternalServerError)
 		handlerLogger.ErrorContext(r.Context(), "access token generation failed", "error", err)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
-			return ""
+			return "", err
 		}
-		return ""
+		return "", err
 	}
-	return token
+	return token, nil
 }
 
-func (h *Handler) parseRegister(w http.ResponseWriter, r *http.Request) (string, string, string) {
+func (h *Handler) parseRegister(w http.ResponseWriter, r *http.Request) (string, string, string, bool) {
 	handlerLogger := h.log.With("component", "handler")
 	w.Header().Set("Content-Type", "application/json")
 
@@ -68,26 +68,27 @@ func (h *Handler) parseRegister(w http.ResponseWriter, r *http.Request) (string,
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid json in Register", "error", err)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
-			return "", "", ""
+			return "", "", "", false
 		}
-		return "", "", ""
+		return "", "", "", false
 	}
 	if userRequest.Name == "" || userRequest.Email == "" || userRequest.Password == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid json in Register")
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
-			return "", "", ""
+			return "", "", "", false
 		}
-		return "", "", ""
+		return "", "", "", false
 	}
 	if !isValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid email in Register")
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
-			return "", "", ""
+			return "", "", "", false
 		}
+		return "", "", "", false
 	}
-	return userRequest.Email, userRequest.Name, userRequest.Password
+	return userRequest.Email, userRequest.Name, userRequest.Password, true
 }
 
 func (h *Handler) StoreCookies(
@@ -96,7 +97,7 @@ func (h *Handler) StoreCookies(
 	userID int,
 	accessToken string,
 	refreshToken string,
-) {
+) error {
 	handlerLogger := h.log.With("component", "handler")
 	w.Header().Set("Content-Type", "application/json")
 	accessExpiresAt := time.Now().Add(AccessTokenDuration)
@@ -111,16 +112,20 @@ func (h *Handler) StoreCookies(
 		w.WriteHeader(http.StatusInternalServerError)
 		handlerLogger.ErrorContext(r.Context(), "StoreTokens", "error", err)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
-			return
+			return err
 		}
-		return
+		return err
 	}
+	return nil
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
 	w.Header().Set("Content-Type", "application/json")
-	email, name, password := h.parseRegister(w, r)
+	email, name, password, ok := h.parseRegister(w, r)
+	if !ok {
+		return
+	}
 	userID, err := h.service.Register(r.Context(), email, name, password)
 
 	if errors.Is(err, domain.ErrEmailAlreadyExists) {
@@ -142,10 +147,18 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken := h.GenerateToken(w, r)
-	refreshToken := h.GenerateToken(w, r)
+	accessToken, err := h.GenerateToken(w, r)
+	if err != nil {
+		return
+	}
+	refreshToken, err := h.GenerateToken(w, r)
+	if err != nil {
+		return
+	}
 
-	h.StoreCookies(w, r, userID, accessToken, refreshToken)
+	if err := h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
+		return
+	}
 
 	h.WriteCookies(w, accessToken, refreshToken)
 	w.WriteHeader(http.StatusCreated)
@@ -154,7 +167,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) parseLogin(w http.ResponseWriter, r *http.Request) (string, string) {
+func (h *Handler) parseLogin(w http.ResponseWriter, r *http.Request) (string, string, bool) {
 	handlerLogger := h.log.With("component", "handler")
 	w.Header().Set("Content-Type", "application/json")
 	var userRequest domain.UserRequest
@@ -162,25 +175,26 @@ func (h *Handler) parseLogin(w http.ResponseWriter, r *http.Request) (string, st
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid request body", "error", err)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
-			return "", ""
+			return "", "", false
 		}
-		return "", ""
+		return "", "", false
 	}
 	if userRequest.Password == "" || userRequest.Email == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
-			return "", ""
+			return "", "", false
 		}
-		return "", ""
+		return "", "", false
 	}
 	if !isValidEmail(userRequest.Email) {
 		w.WriteHeader(http.StatusBadRequest)
 		handlerLogger.WarnContext(r.Context(), "invalid email in Register")
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "invalid request body"}); encErr != nil {
-			return "", ""
+			return "", "", false
 		}
+		return "", "", false
 	}
-	return userRequest.Email, userRequest.Password
+	return userRequest.Email, userRequest.Password, true
 }
 
 func (h *Handler) WriteCookies(w http.ResponseWriter, accessToken string, refreshToken string) {
@@ -212,11 +226,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	handlerLogger := h.log.With("component", "handler")
 	w.Header().Set("Content-Type", "application/json")
 
-	email, password := h.parseLogin(w, r)
+	email, password, ok := h.parseLogin(w, r)
+	if !ok {
+		return
+	}
 	userID, err := h.service.Login(r.Context(), email, password)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserDoesNotExist) {
-			w.WriteHeader(http.StatusConflict)
+			w.WriteHeader(http.StatusUnauthorized)
 			handlerLogger.ErrorContext(r.Context(), "User does not exist", "error", err)
 			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "user does not exist"}); encErr != nil {
 				return
@@ -231,10 +248,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken := h.GenerateToken(w, r)
-	refreshToken := h.GenerateToken(w, r)
+	accessToken, err := h.GenerateToken(w, r)
+	if err != nil {
+		return
+	}
+	refreshToken, err := h.GenerateToken(w, r)
+	if err != nil {
+		return
+	}
 
-	h.StoreCookies(w, r, userID, accessToken, refreshToken)
+	if err := h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
+		return
+	}
 	h.WriteCookies(w, accessToken, refreshToken)
 	w.WriteHeader(http.StatusCreated)
 	if encErr := json.NewEncoder(w).Encode(map[string]string{"message": "Login successful"}); encErr != nil {
@@ -298,10 +323,18 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken := h.GenerateToken(w, r)
-	refreshToken := h.GenerateToken(w, r)
+	accessToken, err := h.GenerateToken(w, r)
+	if err != nil {
+		return
+	}
+	refreshToken, err := h.GenerateToken(w, r)
+	if err != nil {
+		return
+	}
 
-	h.StoreCookies(w, r, userID, accessToken, refreshToken)
+	if err := h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
+		return
+	}
 
 	if err = h.service.RevokeTokens(r.Context(), userID, sessionID); err != nil {
 		if errors.Is(err, domain.ErrTokenNotFound) {

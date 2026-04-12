@@ -237,7 +237,7 @@ func (s *serviceStruct) GetUserByUserID(ctx context.Context, userID int) (domain
 		return domain.User{}, err
 	}
 	if hit {
-		return domain.User{}, err
+		return user, nil
 	}
 	user, err = s.repo.GetUserByUserID(ctx, userID)
 	go func() {
