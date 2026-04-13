@@ -202,7 +202,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
+	if err = h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
 		return
 	}
 
@@ -291,7 +291,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
+	if err = h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
 		return
 	}
 
@@ -348,17 +348,17 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 
 	refreshTokenOld := cookie.Value
 	sessionID, userID, err := h.service.GetByRefreshToken(r.Context(), refreshTokenOld)
-	if err != nil {
-		if errors.Is(err, domain.ErrTokenNotFound) {
-			w.WriteHeader(http.StatusUnauthorized)
+	if errors.Is(err, domain.ErrTokenNotFound) {
+		w.WriteHeader(http.StatusUnauthorized)
 
-			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "unauthorized"}); encErr != nil {
-				return
-			}
-			handlerLogger.ErrorContext(r.Context(), "GetByRefreshToken", "error", err)
+		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "unauthorized"}); encErr != nil {
 			return
 		}
+		handlerLogger.ErrorContext(r.Context(), "GetByRefreshToken", "error", err)
+		return
+	}
 
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {
@@ -378,21 +378,22 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
+	if err = h.StoreCookies(w, r, userID, accessToken, refreshToken); err != nil {
 		return
 	}
 
-	if err = h.service.RevokeTokens(r.Context(), userID, sessionID); err != nil {
-		if errors.Is(err, domain.ErrTokenNotFound) {
-			w.WriteHeader(http.StatusUnauthorized)
+	err = h.service.RevokeTokens(r.Context(), userID, sessionID)
+	if errors.Is(err, domain.ErrTokenNotFound) {
+		w.WriteHeader(http.StatusUnauthorized)
 
-			if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "unauthorized"}); encErr != nil {
-				return
-			}
-			handlerLogger.ErrorContext(r.Context(), "RevokeTokens", "error", err)
+		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "unauthorized"}); encErr != nil {
 			return
 		}
+		handlerLogger.ErrorContext(r.Context(), "RevokeTokens", "error", err)
+		return
+	}
 
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 
 		if encErr := json.NewEncoder(w).Encode(errorResponse{Error: "internal server error"}); encErr != nil {

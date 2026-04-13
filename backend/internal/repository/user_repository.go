@@ -117,7 +117,6 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (domain.U
 		query,
 		email,
 	).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.IsEmailVerified, &user.CreatedAt)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, domain.ErrUserDoesNotExist
@@ -142,7 +141,6 @@ func (r *Repository) GetUserByUserID(ctx context.Context, userID int) (domain.Us
 		query,
 		userID,
 	).Scan(&user.ID, &user.Name, &user.Email, &user.HashedPassword, &user.IsEmailVerified, &user.CreatedAt)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.User{}, domain.ErrUserDoesNotExist
@@ -190,7 +188,6 @@ func (r *Repository) GetByAccessToken(ctx context.Context, accessToken []byte) (
 		query,
 		accessToken,
 	).Scan(&token.SessionID, &token.UserID, &token.Token, &token.ExpiresAt, &token.RevokedAt)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Token{}, domain.ErrTokenNotFound
@@ -221,7 +218,6 @@ func (r *Repository) GetByRefreshToken(ctx context.Context, refreshToken []byte)
 		&token.ExpiresAt,
 		&token.RevokedAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.Token{}, domain.ErrTokenNotFound
@@ -334,7 +330,6 @@ func (r *Repository) GetEmailTableByID(ctx context.Context, userID int) (domain.
 		&token.UsedAt,
 		&token.CreatedAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.EmailToken{}, domain.ErrTokenNotFound
@@ -368,7 +363,6 @@ func (r *Repository) GetEmailTableByToken(ctx context.Context, hashedToken []byt
 		&token.UsedAt,
 		&token.CreatedAt,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.EmailToken{}, domain.ErrTokenNotFound
@@ -514,7 +508,6 @@ func (r *Repository) GetURLByShortCode(ctx context.Context, shortCode string) (d
 		&url.ExpiresAt,
 		&url.ClickCount,
 	)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return domain.URL{}, domain.ErrURLDoesNotExist
